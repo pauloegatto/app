@@ -1,3 +1,4 @@
+
 const express = require("express");
 const app = express();
 require('dotenv').config()
@@ -14,13 +15,14 @@ app.post("/dialogflow", async (request, response) => {
   
   if (queryResult.intent.displayName === "Default Welcome Intent") {
 
-   const client = await show(session);
-    //return response.json({fulfillmentText: "oi vs code"})
+  // const client = await show(session);
+   const client = "Paulo";
+   
   if (!client){
       return response.json({ followupEventInput: { name: "perguntacadastro" } });
   }
-      return response.json({ followupEventInput: { name: "menusimples", parameters: {"nome":`${client.nome}`}}});
-        // response.json({ followupEventInput: { name: "calltest", parameters: {"nome":"Visitante'"}}});
+      return response.json({ followupEventInput: { name: "Welcome", parameters: {"nome":`${client.nome}`}}});
+     
 
  }
 
@@ -73,4 +75,4 @@ if (queryResult.intent.displayName === "alteracadastronome") {
 
  });
 
-app.listen(process.env.PORT || 3000);
+app.listen(process.env.PORT || 3000); 
