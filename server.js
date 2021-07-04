@@ -14,12 +14,12 @@ app.post("/dialogflow", async (request, response) => {
   
   if (queryResult.intent.displayName === "Default Welcome Intent") {
 
-   // const client = await show(session);
-    return response.json({fulfillmentText: "oi vs code"})
-  //if (!client)
-     // return response.json({ followupEventInput: { name: "perguntacadastro" } });
-     
-    // return response.json({ followupEventInput: { name: "menusimples", parameters: {"nome":`${client.nome}`}}});
+   const client = await show(session);
+    //return response.json({fulfillmentText: "oi vs code"})
+  if (!client){
+      return response.json({ followupEventInput: { name: "perguntacadastro" } });
+  }
+      return response.json({ followupEventInput: { name: "menusimples", parameters: {"nome":`${client.nome}`}}});
         // response.json({ followupEventInput: { name: "calltest", parameters: {"nome":"Visitante'"}}});
 
  }
