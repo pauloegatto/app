@@ -16,12 +16,12 @@ app.post("/dialogflow", async (request, response) => {
   
   if (queryResult.intent.displayName === "Default Welcome Intent") {
 
-  // const client = await show(session);
+  const client = await show(session);
 
    
- // if (!client)
+ if (!client)
       return response.json({ followupEventInput: { name: "perguntacadastro" } });
- //     return response.json({ followupEventInput: { name: "Welcome", parameters: {"nome":`${client.nome}`}}});
+      return response.json({ followupEventInput: { name: "Welcome", parameters: {"nome":`${client.nome}`}}});
   
      
 
