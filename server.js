@@ -21,7 +21,7 @@ app.post("/dialogflow", async (request, response) => {
    
  if (!client)
       return response.json({ followupEventInput: { name: "perguntacadastro" } });
-      return response.json({ followupEventInput: { name: "Welcome", parameters: {"nome":`${client.nome}`}}});
+      return response.json({ followupEventInput: { name: "menu", parameters: {"nome":`${client.nome}`}}});
   
      
 
@@ -37,7 +37,7 @@ app.post("/dialogflow", async (request, response) => {
   }
   
  if (queryResult.intent.displayName === "perguntacadastro - no") {
-    return response.json({ followupEventInput: { "name": "Welcome","languageCode": "pt-BR", "parameters":{ nome: "Visitante"}}});
+    return response.json({ followupEventInput: { "name": "menu","languageCode": "pt-BR"}});
  }
   
 if (queryResult.intent.displayName === "perguntacadastro - yes") {
@@ -47,7 +47,7 @@ if (queryResult.intent.displayName === "perguntacadastro - yes") {
  if (queryResult.intent.displayName === "cadastro - yes") {
     const client = await show(session);
   
-    return response.json({ followupEventInput: { name: "Welcome", "languageCode": "pt-BR", "parameters": {"nome":`${client.nome}`}}
+    return response.json({ followupEventInput: { name: "menu", "languageCode": "pt-BR", "parameters": {"nome":`${client.nome}`}}
 
     });
  }
