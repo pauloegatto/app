@@ -45,7 +45,6 @@ if (queryResult.intent.displayName === "perguntacadastro - yes") {
   }
   
  if (queryResult.intent.displayName === "cadastro - yes") {
-    const client = await show(session);
   
     return response.json({ followupEventInput: { name: "menu", "languageCode": "pt-BR", "parameters": {"nome":`${client.nome}`}}
 
