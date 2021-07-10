@@ -21,7 +21,7 @@ app.post("/dialogflow", async (request, response) => {
    
  if (!client)
       return response.json({ followupEventInput: { name: "perguntacadastro" } });
-      return response.json({ followupEventInput: { name: "menu", parameters: {"nome":`${client.nome}`}}});
+      return response.json({ followupEventInput: { name: "menu", parameters: {"nome":`${client.nome}`,"usuario": "Acessar meu cadastro"}}});
   
      
 
@@ -51,7 +51,6 @@ app.post("/dialogflow", async (request, response) => {
  if (queryResult.intent.displayName === "cadastro - yes") {
    
       const client = await show(session);
-      console.log(client)
     return response.json({ followupEventInput: { name: "menu", "languageCode": "pt-BR", "parameters": {"nome":`${client.nome}`}}
 
     });
@@ -76,7 +75,15 @@ if (queryResult.intent.displayName === "alteracadastronome") {
   
    return response.json({fulfillmentText: `OK ${nome} Seu nome foi alterado com succeessso `});
   }
-  
+
+  if (queryResult.intent.displayName === "menu3") {
+   
+    const client = await show(session);
+    if (!client)
+    return response.json({ followupEventInput: { name: "cadastro", "languageCode": "pt-BR"}});
+    return response.json({ followupEventInput: { name: "cadastro", "languageCode": "pt-BR", "parameters": {"nome":`${client.nome}`,"telefone":`${client.telefone}`,"cep":`${client.cep}`,"numero":`${client.numero}`}}});
+
+  }
    
 
  });
