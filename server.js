@@ -32,7 +32,7 @@ app.post("/dialogflow", async (request, response) => {
 
     console.log(cliente);
     if(cliente.andress.logradouro){
-      return response.json({fulfillmentText: `${cliente.parameters.nome}, esses dados estão corretos?\n Rua: ${cliente.andress.logradouro}, nº: ${cliente.parameters.numero}\n Telefone: ${cliente.parameters.telefone}\n Localidade: ${cliente.andress.localidade}/${cliente.andress.uf}\n *SIM* ou *NÃO*`
+      return response.json({fulfillmentText: `${cliente.parameters.nome}, esses dados estão corretos?\n Telefone: ${cliente.parameters.telefone}\n Rua: ${cliente.andress.logradouro}, nº: ${cliente.parameters.numero}\n Localidade: ${cliente.andress.localidade}/${cliente.andress.uf}\n *SIM* ou *NÃO*`
     });
 
     }
