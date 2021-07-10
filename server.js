@@ -31,7 +31,11 @@ app.post("/dialogflow", async (request, response) => {
     const cliente = await create(queryResult.parameters, session);
 
     console.log(cliente);
+    if(client.andress.logradouro){
+      return response.json({fulfillmentText: `${cliente.parameters.nome}, esses dados estão corretos?\n Rua: ${cliente.andress.logradouro}, nº: ${cliente.parameters.rua}\n Telefone: ${cliente.parameters.telefone}\n Localidade: ${cliente.andress.localidade}/${cliente.andress.uf}\n *SIM* ou *NÃO*`
+    });
 
+    }
     return response.json({fulfillmentText: `${cliente.parameters.nome}, esses dados estão corretos?\n Telefone: ${cliente.parameters.telefone}\n Localidade: ${cliente.andress.localidade}/${cliente.andress.uf}\n *SIM* ou *NÃO*`
     });
   }

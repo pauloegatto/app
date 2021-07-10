@@ -29,7 +29,9 @@ async function create(parameters, session) {
       telefone: parameters.telefone,
       cep: parameters.cep,
       localidade: andress.localidade,
-      uf: andress.uf
+      uf: andress.uf,
+      rua: andress.logradouro,
+      numero: parameters.numero
     },
     {
       auth: {
