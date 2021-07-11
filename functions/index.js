@@ -11,10 +11,7 @@ async function viacep(cep) {
 
 
 async function cnpjCpf(cnpj) {
-  const result = await axios.get(`${process.env.URL_RECEITANEWS}${cnpj}`,{
-    headers: {
-      'Authorization': `Bearer ${process.env.TOKEN_RECEITA}`
-  }});
+  const result = await axios.get(`${process.env.URL_RECEITANEWS}${cnpj}`);
   console.log(result.data)
   return result.data;
 }
