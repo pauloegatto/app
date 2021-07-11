@@ -3,7 +3,6 @@ const express = require("express");
 const app = express();
 require('dotenv').config()
 const axios = require("axios");
-const { cnpjCpf } = require("./functions");
 
 const { show, create, updateName, deleteAll, createempresa } = require("./client");
 
@@ -27,11 +26,11 @@ app.post("/dialogflow", async (request, response) => {
 
  }
  if (queryResult.intent.displayName === "cadastroempresa") {
-  const empresa = await cnpjCpf(queryResult.parameters.cnpjCpf);
+  const empresa = await createempresa(queryResult.parameters, session);
   console.log(empresa)
   
   return response.json({fulfillmentText: 
-    `Seu ${empresa.fantasia} foi cadastrado com sucesso`
+    `Seu ${empresa.empresa.fantasia} foi cadastrado com sucesso`
 });
 
 

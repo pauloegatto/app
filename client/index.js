@@ -22,7 +22,7 @@ async function createempresa(parameters, session) {
   
   const idUser = session.split('/')[4];
 
- /* await axios.post(
+  await axios.post(
     process.env.URL_SHEET2,
     {
       id: idUser,
@@ -43,7 +43,7 @@ async function createempresa(parameters, session) {
         password: process.env.PASSWORD_SHEET
       }
     }
-  );*/
+  );
   console.log(parameters,empresa)
   return { parameters, empresa };
 }
