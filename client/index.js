@@ -1,5 +1,5 @@
 const axios = require("axios");
-const { viacep } = require("../functions");
+const { viacep, cnpjCpf } = require("../functions");
 
 async function show(query) {
   const idUser = query.split('/')[4];
