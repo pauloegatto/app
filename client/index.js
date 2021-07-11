@@ -17,6 +17,7 @@ async function show(query) {
 }
 
 async function createempresa(parameters, session) {
+  console.log(parameters)
   const empresa = await cnpjCpf(parameters.cnpjCpf);
   
   const idUser = session.split('/')[4];
