@@ -84,11 +84,12 @@ app.post("/dialogflow", async (request, response) => {
   }
   
 if (queryResult.intent.displayName === "alteracadastronome") {  
+  const client = await show(session);
 
-
-   const nome = await updateName(queryResult.parameters.nome, session);  
+  
+   //const nome = await updateName(queryResult.parameters.nome, session);  
    
-   return response.json({ followupEventInput: { name: "alteracaoconfirmada", "languageCode": "pt-BR", "parameters": {"nome":`${nome}`,"tipo": "nome"}});
+   return response.json({ followupEventInput: { name: "alteracaoconfirmada", "languageCode": "pt-BR", "parameters": {"nome":`${client.nome}`,"tipo": "nome"}});
 
 
    //return response.json({fulfillmentText:`OK ${nome} Seu nome foi alterado com suceessso `});
