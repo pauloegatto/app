@@ -13,7 +13,7 @@ async function cnpjCpf(cnpj) {
     headers: {
       'Authorization': `Bearer ${process.env.TOKEN_RECEITA}`
   }});
-
+  console.log(result.data)
   return result.data;
 }
 module.exports = { viacep, cnpjCpf };

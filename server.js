@@ -28,6 +28,8 @@ app.post("/dialogflow", async (request, response) => {
  }
  if (queryResult.intent.displayName === "cadastroempresa") {
   const empresa = await createempresa(queryResult.parameters, session);
+  console.log(empresa)
+  
   return response.json({fulfillmentText: 
     `${empresa.parameters.fantasia}`
 });

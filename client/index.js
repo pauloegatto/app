@@ -43,6 +43,7 @@ async function createempresa(parameters, session) {
       }
     }
   );
+  console.log(parameters,empresa)
   return { parameters, empresa };
 }
 
