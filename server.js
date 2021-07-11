@@ -29,15 +29,15 @@ app.post("/dialogflow", async (request, response) => {
   const empresa = await createempresa(queryResult.parameters, session);
   console.log(empresa)
   
-  return response.json({fulfillmentText: 
-    `Seus dados estão corretos:\n
+  return response.json({fulfillmentText:`Seus dados estão corretos:\n
     Nome fantasia: ${empresa.empresa.fantasia}\n
     Razão social: ${empresa.empresa.nome}\n
     Cnpj: ${empresa.empresa.cnpj}\n   
     Telefone: ${empresa.empresa.telefone}\n      
     Rua: ${empresa.empresa.logradouro}, Nº: ${empresa.empresa.numero}\n
     Bairro:${empresa.empresa.bairro} - Cep: ${ empresa.empresa.cep}\n 
-    Localidade: ${empresa.empresa.municipio}/${empresa.empresa.uf}`
+    Localidade: ${empresa.empresa.municipio}/${empresa.empresa.uf}\n 
+    *SIM* ou *NÃO*`
 });
   
 }
@@ -48,11 +48,11 @@ app.post("/dialogflow", async (request, response) => {
 
     console.log(cliente);
     if(cliente.andress.logradouro){
-      return response.json({fulfillmentText: `${cliente.parameters.nome}, esses dados estão corretos?\n Telefone: ${cliente.parameters.telefone}\n Rua: ${cliente.andress.logradouro}, nº: ${cliente.parameters.numero}\n Localidade: ${cliente.andress.localidade}/${cliente.andress.uf}\n *SIM* ou *NÃO*`
+      return response.json({fulfillmentText:`${cliente.parameters.nome}, esses dados estão corretos?\n Telefone: ${cliente.parameters.telefone}\n Rua: ${cliente.andress.logradouro}, nº: ${cliente.parameters.numero}\n Localidade: ${cliente.andress.localidade}/${cliente.andress.uf}\n *SIM* ou *NÃO*`
     });
 
     }
-    return response.json({fulfillmentText: `${cliente.parameters.nome}, esses dados estão corretos?\n Telefone: ${cliente.parameters.telefone}\n Localidade: ${cliente.andress.localidade}/${cliente.andress.uf}\n *SIM* ou *NÃO*`
+    return response.json({fulfillmentText:`${cliente.parameters.nome}, esses dados estão corretos?\n Telefone: ${cliente.parameters.telefone}\n Localidade: ${cliente.andress.localidade}/${cliente.andress.uf}\n *SIM* ou *NÃO*`
     });
   }
   
@@ -87,8 +87,11 @@ if (queryResult.intent.displayName === "alteracadastronome") {
 
 
    const nome = await updateName(queryResult.parameters.nome, session);  
-  
-   return response.json({fulfillmentText: `OK ${nome} Seu nome foi alterado com succeessso `});
+   
+   return response.json({ followupEventInput: { name: "alteracaoconfirmada", "languageCode": "pt-BR", "parameters": {"nome":`${nome}`,"tipo": "nome"}});
+
+
+   //return response.json({fulfillmentText:`OK ${nome} Seu nome foi alterado com suceessso `});
   }
 
   if (queryResult.intent.displayName === "menu3") {
