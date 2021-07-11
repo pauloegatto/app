@@ -1,4 +1,6 @@
 const axios = require("axios");
+require('dotenv').config()
+
 
 async function viacep(cep) {
   const result = await axios.get(`${process.env.URL_VIACEP}${cep}/json`);
@@ -16,4 +18,12 @@ async function cnpjCpf(cnpj) {
   console.log(result.data)
   return result.data;
 }
+
+/*(async()=> {
+  
+  const resposta = await cnpjCpf(23858717000174)
+  console.log(resposta.fantasia)})()*/
+
+
+
 module.exports = { viacep, cnpjCpf };

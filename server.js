@@ -31,7 +31,7 @@ app.post("/dialogflow", async (request, response) => {
   console.log(empresa)
   
   return response.json({fulfillmentText: 
-    `${empresa.parameters.fantasia}`
+    `cadastrado com sucesso`
 });
 
 
