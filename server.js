@@ -30,14 +30,18 @@ app.post("/dialogflow", async (request, response) => {
   console.log(empresa)
   
   return response.json({fulfillmentText: 
-    `Seu ${empresa.empresa.fantasia} foi cadastrado com sucesso`
+    `Seus dados estão corretos:\n
+    Nome fantasia: ${empresa.empresa.fantasia}\n
+    Razão social: ${empresa.empresa.nome}\n
+    Cnpj: ${empresa.empresa.cnpj}\n   
+    Telefone: ${empresa.empresa.telefone}\n      
+    Rua: ${empresa.empresa.logradouro}, Nº: ${empresa.empresa.numero}\n
+    Bairro:${empresa.empresa.bairro} - Cep: ${ empresa.empresa.cep}\n 
+    Localidade: ${empresa.empresa.municipio}/${empresa.empresa.uf}`
 });
-
-
-
-
-
+  
 }
+
 
  if (queryResult.intent.displayName === "cadastro") {
     const cliente = await create(queryResult.parameters, session);
