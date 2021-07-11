@@ -1,5 +1,5 @@
 const axios = require("axios");
-const { viacep } = require("../cep");
+const { viacep } = require("../functions");
 
 async function show(query) {
   const idUser = query.split('/')[4];
@@ -15,6 +15,38 @@ async function show(query) {
 
   return result.data[0];
 }
+
+async function createempresa(parameters, session) {
+  const empresa = await cnpjCpf(parameters.cnpjCpf);
+  
+  const idUser = session.split('/')[4];
+
+  await axios.post(
+    process.env.URL_SHEET2,
+    {
+      id: idUser,
+      nomeFantasia: empresa.fantasia
+     // razaoSocial
+    //  cnpj:
+     // telefoneWhats:
+     // telefone: parameters.telefone,
+     // cep: parameters.cep,
+      //localidade: andress.localidade,
+     // uf: andress.uf,
+     // rua: andress.logradouro,
+     // numero: parameters.numero
+    },
+    {
+      auth: {
+        username: process.env.LOGIN_SHEET,
+        password: process.env.PASSWORD_SHEET
+      }
+    }
+  );
+  return { parameters, empresa };
+}
+
+
 
 async function create(parameters, session) {
   const andress = await viacep(parameters.cep);
@@ -84,4 +116,4 @@ async function deleteAll() {
 
 
 
-module.exports = { show, create, updateName, deleteAll };
+module.exports = { show, create, updateName, deleteAll, createempresa };

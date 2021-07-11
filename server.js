@@ -5,7 +5,7 @@ require('dotenv').config()
 const axios = require("axios");
 
 
-const { show, create, updateName, deleteAll } = require("./client");
+const { show, create, updateName, deleteAll, createempresa } = require("./client");
 
 
 app.use(express.json());
@@ -26,6 +26,17 @@ app.post("/dialogflow", async (request, response) => {
      
 
  }
+ if (queryResult.intent.displayName === "cadastroempresa") {
+  const empresa = await createempresa(queryResult.parameters, session);
+  return response.json({fulfillmentText: 
+    `${empresa.parameters.fantasia}`
+});
+
+
+
+
+
+}
 
  if (queryResult.intent.displayName === "cadastro") {
     const cliente = await create(queryResult.parameters, session);
@@ -51,7 +62,7 @@ app.post("/dialogflow", async (request, response) => {
  if (queryResult.intent.displayName === "cadastro - yes") {
    
       const client = await show(session);
-    return response.json({ followupEventInput: { name: "menu", "languageCode": "pt-BR", "parameters": {"nome":`${client.nome}`}}
+    return response.json({ followupEventInput: { name: "menu", "languageCode": "pt-BR", "parameters": {"nome":`${client.nome}`,"usuario": "Acessar meu cadastro"}}
 
     });
  }
@@ -64,11 +75,10 @@ app.post("/dialogflow", async (request, response) => {
   {
        await  deleteAll();
     
-    return response.json({fulfillmentText: "OK"})
+    return response.json({fulfillmentText: "Tudo Apagado. OK"})
   }
   
-if (queryResult.intent.displayName === "alteracadastronome") {
-  
+if (queryResult.intent.displayName === "alteracadastronome") {  
 
 
    const nome = await updateName(queryResult.parameters.nome, session);  
