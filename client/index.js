@@ -26,16 +26,17 @@ async function createempresa(parameters, session) {
     process.env.URL_SHEET2,
     {
       id: idUser,
-      nomeFantasia: empresa.fantasia
-     // razaoSocial
-    //  cnpj:
-     // telefoneWhats:
-     // telefone: parameters.telefone,
-     // cep: parameters.cep,
-      //localidade: andress.localidade,
-     // uf: andress.uf,
-     // rua: andress.logradouro,
-     // numero: parameters.numero
+      nomeFantasia: empresa.fantasia,
+      razaoSocial:  empresa.nome,
+      cnpj:  empresa.cnpj,
+     // telefoneWhats:  empresa.,
+      telefone:  empresa.telefone,
+      cep:  empresa.cep,
+      localidade:  empresa.municipio,
+      uf:  empresa.uf,
+      rua:  empresa.logradouro,
+      numero:  empresa.numero,
+      bairro: empresa.bairro
     },
     {
       auth: {
@@ -44,7 +45,7 @@ async function createempresa(parameters, session) {
       }
     }
   );
-  console.log(parameters,empresa)
+  //console.log(parameters,empresa)
   return { parameters, empresa };
 }
 
