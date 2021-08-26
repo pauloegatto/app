@@ -183,13 +183,21 @@ app.post("/102paraWhats", async (request, response) => {
 
   if (queryResult.intent.displayName === "cadastro - yes") {
     const client = await show(session);
+    const apoiolocal = `${client.apoiolocal.toUpperCase()}*`;
+    const cidadeuf = `${client.localidade}/${client.uf}`
     return response.json({
       followupEventInput: {
-        name: "menu",
+        name: "menurapido",
         languageCode: "pt-BR",
-        parameters: { nome: `Cadastro efetuado com sucesso *${client.nome}*`, usuario: "Acessar meu cadastro" }
+        parameters: {
+          nome: `${client.nome}`,
+          localidade: `${client.localidade.toUpperCase()}`,
+          apoiolocal: `${apoiolocal}`,
+          cidadeuf: `${cidadeuf}`
+        }
       }
     });
+    
   }
 
    if (queryResult.intent.displayName === "alteracadastrotudo - exibe - yes") {
