@@ -32,12 +32,39 @@ app.post("/102paraWhats", async (request, response) => {
       });
     }
 
+//     return response.json({
+//       followupEventInput: {
+//         name: "menu",
+//         parameters: { nome: `${client.nome}`, usuario: "Acessar meu cadastro" }
+//       }
+//    });
+    
+      
+    const apoiolocal = `${client.apoiolocal.toUpperCase()}*`;
+    const cidadeuf = `${client.localidade}/${client.uf}`
     return response.json({
       followupEventInput: {
-        name: "menu",
-        parameters: { nome: `${client.nome}`, usuario: "Acessar meu cadastro" }
+        name: "menurapido",
+        languageCode: "pt-BR",
+        parameters: {
+          nome: `${client.nome}`,
+          localidade: `${client.localidade.toUpperCase()}`,
+          apoiolocal: `${apoiolocal}`,
+          cidadeuf: `${cidadeuf}`
+        }
       }
     });
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
   }
 
   if (queryResult.intent.displayName === "cadastroempresa") {
@@ -497,11 +524,11 @@ Obrigado por utilizar *102paraWhats®* 🙏`
     if (!client)
       return response.json({
         followupEventInput: {
-          name: "pesquisa",
+          name: "perguntacep",
           languageCode: "pt-BR"
         }
       });
-    const mensagem = `${client.localidade}/${client.uf}`;
+    const mensagem = `Localidade: *${client.localidade}/${client.uf}*\n\nApoio local: *${client.apoiolocal.toUpperCase()}*`;
     return response.json({
       followupEventInput: {
         name: "pesquisa",
@@ -510,17 +537,65 @@ Obrigado por utilizar *102paraWhats®* 🙏`
           mensagem: `${mensagem}`,
           nome: `${client.nome}`,
           cep: `${client.cep}`,
-          apoiolocal: `${client.apoiolocal.toUpperCase()}`
+          localidade: `${client.localidade.toUpperCase()}`
         }
       }
     });
   }
 
+   if (queryResult.intent.displayName === "perguntacep") {
+   //const digitado = queryResult.parameters.atividade
+   const cepnovo = String(queryResult.parameters.cep).replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"")
+  
+   if (cepnovo.length === 8){
+  let textoAjustado 
+  
+
+        const parte1 = cepnovo.slice(0,5);
+        const parte2 = cepnovo.slice(5,8);
+      
+
+        textoAjustado = `${parte1}-${parte2}`
+        const cep = textoAjustado
+   
+    console.log("teste pergunta CEP")
+    console.log(cep)
+    const localidade = await viacep(cep);
+    const mensagem = `Localidade: *${localidade.localidade}/${localidade.uf}*`;
+   console.log(localidade.localidade)
+     return response.json({
+      followupEventInput: {
+        name: "pesquisa",
+        languageCode: "pt-BR",
+        parameters: {
+          mensagem: `${mensagem}`,        
+          localidade: `${localidade.localidade}`
+        }
+      }
+    });}
+  const mensagem = `Localidade: *${cepnovo.toUpperCase()}*`;
+    return response.json({
+      followupEventInput: {
+        name: "pesquisa",
+        languageCode: "pt-BR",
+        parameters: {
+          mensagem: `${mensagem}`,        
+          localidade: `${cepnovo.toUpperCase()}`
+        }
+      }
+    });
+   
+   }
+  
   if (queryResult.intent.displayName === "pesquisa") {
     const pesquisado = String(queryResult.parameters.atividade);
   console.log("teste CEP")
-      console.log(queryResult.parameters.cep)
-    const resultas = await pesquisa(queryResult.parameters);
+    console.log(queryResult.parameters.cep)
+    const localidade = (queryResult.parameters.localidade)
+    const resultas = await pesquisa(queryResult.parameters, localidade);
+    
+    console.log("teste CEP")
+    console.log("teste resultas");
     let texto = `*${resultas.length}* resultado (s) encontrados para *${pesquisado.toUpperCase()}*.`;
     let text = "";
     let numero = "0";
@@ -532,7 +607,7 @@ Obrigado por utilizar *102paraWhats®* 🙏`
     console.log(resultas.length);
     if ( resultas.length === 0){
              
-      const resultas = await pesquisasimples(queryResult.parameters);
+      const resultas = await pesquisasimples(queryResult.parameters, localidade);
 
       texto =   `~${pesquisado.toUpperCase()}~ não foi encontrado em nossa base de dados 😞\nMas não se preocupe, expandimos a pesquisa para *todos os resultados na sua localidade* para que possa encontrar o que deseja. 😊`;
         
@@ -556,7 +631,7 @@ Obrigado por utilizar *102paraWhats®* 🙏`
           parameters: {
             mensagem: `${texto}${text}`,
             atividade: `${pesquisado}`,
-            cep: `${queryResult.parameters.cep}`,
+            localidade: `${localidade}`,
             rodape: "Esses são todos os resultados."
           }
         }
@@ -648,7 +723,7 @@ Obrigado por utilizar *102paraWhats®* 🙏`
           mensagem: `Exibindo *${numero}* de ${texto}\n${text}`,
           atividade: `${pesquisado}`,
           rodape: `${rodape}`,
-          cep: `${queryResult.parameters.cep}`
+          localidade: `${localidade}`
         }
       }
     });
@@ -657,7 +732,7 @@ Obrigado por utilizar *102paraWhats®* 🙏`
   if (queryResult.intent.displayName === "resposta") {
     const pesquisado = String(queryResult.parameters.atividade);
     const numero = String(queryResult.parameters.texto);
-
+  const localidade = queryResult.parameters.localidade;
     console.log("resposta");
     // console.log(queryResult.parameters.texto);
     // console.log(pesquisado);
@@ -665,19 +740,29 @@ Obrigado por utilizar *102paraWhats®* 🙏`
     // console.log(queryResult.parameters.cep);
     // console.log(queryResult);
     
-       if (numero === "*") {
-      
-      const client = await show(session);
-         return response.json({
+    if (numero === "*") {
+    const client = await show(session);
+    if (!client) {    
+    return response.json({followupEventInput: {
+        name: "menu",}
+    });}
+    const apoiolocal = `${client.apoiolocal.toUpperCase()}*`;
+    const cidadeuf = `${client.localidade}/${client.uf}`
+    return response.json({
       followupEventInput: {
-        name: "menu",
-        parameters: { nome: `${client.nome}`, usuario: "Acessar meu cadastro" }
+        name: "menurapido",
+        languageCode: "pt-BR",
+        parameters: {
+          nome: `${client.nome}`,
+          localidade: `${client.localidade.toUpperCase()}`,
+          apoiolocal: `${apoiolocal}`,
+          cidadeuf: `${cidadeuf}`
+        }
       }
-    });
-      
+    });       
     } 
     if (numero === "5") {
-      const resultas = await pesquisa(queryResult.parameters);
+      const resultas = await pesquisa(queryResult.parameters, localidade);
 
       const texto = `Exibindo *todos os ${resultas.length}* resultados encontrados para *${pesquisado.toUpperCase()}*.`;
       let text = "";
@@ -697,7 +782,7 @@ Obrigado por utilizar *102paraWhats®* 🙏`
           parameters: {
             mensagem: `${texto}${text}`,
             atividade: `${pesquisado}`,
-            cep: `${queryResult.parameters.cep}`,
+            localidade: `${queryResult.parameters.localidade}`,
             rodape: "Esses são todos os resultados."
           }
         }
@@ -719,8 +804,8 @@ Obrigado por utilizar *102paraWhats®* 🙏`
       
     } 
     else {
-      const resultas = await pesquisa(queryResult.parameters);
-      let celular = resultas[numero - 1].whats;
+      const resultas = await pesquisa(queryResult.parameters, localidade);
+     const celular = resultas[numero - 1].whats;
       const idUser = String(celular)
         .match(/\d+/g)
         .join("");
@@ -755,7 +840,7 @@ Obrigado por utilizar *102paraWhats®* 🙏`
           parameters: {
             mensagem: `${text}`,
             atividade: `${pesquisado}`,
-            cep: `${queryResult.parameters.cep}`,
+            localidade: `${queryResult.parameters.localidade}`,
             rodape: "5️⃣ *Mais resultados*"
           }
         }
@@ -765,19 +850,29 @@ Obrigado por utilizar *102paraWhats®* 🙏`
 
   if (queryResult.intent.displayName === "respostatudo") {
     const pesquisado = String(queryResult.parameters.atividade);
-
+  const localidade = queryResult.parameters.localidade;
     const numero = String(queryResult.parameters.texto);
 
-          if (numero === "*") {
-      
-      const client = await show(session);
-         return response.json({
+             if (numero === "*") {
+    const client = await show(session);
+    if (!client) {    
+    return response.json({followupEventInput: {
+        name: "menu",}
+    });}
+    const apoiolocal = `${client.apoiolocal.toUpperCase()}*`;
+    const cidadeuf = `${client.localidade}/${client.uf}`
+    return response.json({
       followupEventInput: {
-        name: "menu",
-        parameters: { nome: `${client.nome}`, usuario: "Acessar meu cadastro" }
+        name: "menurapido",
+        languageCode: "pt-BR",
+        parameters: {
+          nome: `${client.nome}`,
+          localidade: `${client.localidade.toUpperCase()}`,
+          apoiolocal: `${apoiolocal}`,
+          cidadeuf: `${cidadeuf}`
+        }
       }
-    });
-      
+    });       
     } 
     if (numero === "0") {
       
@@ -792,7 +887,7 @@ Obrigado por utilizar *102paraWhats®* 🙏`
         }
       });
     } else {
-      const resultas = await pesquisa(queryResult.parameters);
+      const resultas = await pesquisa(queryResult.parameters, localidade);
       let celular = resultas[numero - 1].whats;
       const idUser = String(celular)
         .match(/\d+/g)
@@ -825,7 +920,7 @@ Obrigado por utilizar *102paraWhats®* 🙏`
           parameters: {
             mensagem: `${text}`,
             atividade: `${pesquisado}`,
-            cep: `${queryResult.parameters.cep}`,
+            localidade: `${queryResult.parameters.localidade}`,
             rodape: "5️⃣ *Mais resultados*"
           }
         }
@@ -862,20 +957,30 @@ Obrigado por utilizar *102paraWhats®* 🙏`
   
    if (queryResult.intent.displayName === "respostaexpandidatudo") {
     const pesquisado = String(queryResult.parameters.atividade);
-
+  const localidade = queryResult.parameters.localidade
     const numero = String(queryResult.parameters.texto);
 console.log(pesquisado)
      console.log(pesquisado)
-          if (numero === "*") {
-      
-      const client = await show(session);
-         return response.json({
+              if (numero === "*") {
+    const client = await show(session);
+    if (!client) {    
+    return response.json({followupEventInput: {
+        name: "menu",}
+    });}
+    const apoiolocal = `${client.apoiolocal.toUpperCase()}*`;
+    const cidadeuf = `${client.localidade}/${client.uf}`
+    return response.json({
       followupEventInput: {
-        name: "menu",
-        parameters: { nome: `${client.nome}`, usuario: "Acessar meu cadastro" }
+        name: "menurapido",
+        languageCode: "pt-BR",
+        parameters: {
+          nome: `${client.nome}`,
+          localidade: `${client.localidade.toUpperCase()}`,
+          apoiolocal: `${apoiolocal}`,
+          cidadeuf: `${cidadeuf}`
+        }
       }
-    });
-      
+    });       
     } 
     if (numero === "0") {
       
@@ -891,9 +996,16 @@ console.log(pesquisado)
       });
     } else {
       console.log("chegou aqui no else")
-      const resultas = await pesquisasimples(queryResult.parameters);
-       console.log(resultas)
-      let celular = resultas[numero - 1].whats;
+      const resultas = await pesquisasimples(queryResult.parameters, localidade);
+      
+      // const resulta = await pesquisasimples(queryResult.parameters, localidade);
+      // const resultas = await resulta.sort(function (x, y){
+      //   let a = x.atividade.toUpperCase(),
+      //       b = y.atividade.toUpperCase();
+      // return a == b ? 0 : a> b ? 1 : -1; });
+      
+      console.log(resultas)
+      const celular = resultas[numero - 1].whats;
       const idUser = String(celular)
         .match(/\d+/g)
         .join("");
@@ -925,7 +1037,7 @@ console.log(pesquisado)
           parameters: {
             mensagem: `${text}`,
             atividade: `${pesquisado}`,
-            cep: `${queryResult.parameters.cep}`,
+            localidade: `${queryResult.parameters.localidade}`,
             rodape: "5️⃣ *Mais resultados*"
           }
         }
@@ -938,21 +1050,31 @@ console.log(pesquisado)
   
    if (queryResult.intent.displayName === "respostadetalhada") {
     const pesquisado = String(queryResult.parameters.atividade);
-
+  const localidade = queryResult.parameters.localidade
     const numero = String(queryResult.parameters.texto);
-       if (numero === "*") {
-      
-      const client = await show(session);
-         return response.json({
+          if (numero === "*") {
+    const client = await show(session);
+    if (!client) {    
+    return response.json({followupEventInput: {
+        name: "menu",}
+    });}
+    const apoiolocal = `${client.apoiolocal.toUpperCase()}*`;
+    const cidadeuf = `${client.localidade}/${client.uf}`
+    return response.json({
       followupEventInput: {
-        name: "menu",
-        parameters: { nome: `${client.nome}`, usuario: "Acessar meu cadastro" }
+        name: "menurapido",
+        languageCode: "pt-BR",
+        parameters: {
+          nome: `${client.nome}`,
+          localidade: `${client.localidade.toUpperCase()}`,
+          apoiolocal: `${apoiolocal}`,
+          cidadeuf: `${cidadeuf}`
+        }
       }
-    });
-      
+    });       
     } 
        if (numero === "5") {
-      const resultas = await pesquisa(queryResult.parameters);
+      const resultas = await pesquisa(queryResult.parameters, localidade);
 
       const texto = `Exibindo *todos os ${resultas.length}* resultados encontrados para *${pesquisado.toUpperCase()}*.`;
       let text = "";
@@ -972,7 +1094,7 @@ console.log(pesquisado)
           parameters: {
             mensagem: `${texto}${text}`,
             atividade: `${pesquisado}`,
-            cep: `${queryResult.parameters.cep}`,
+            localidade: `${queryResult.parameters.localidade}`,
             rodape: "Esses são todos os resultados."
           }
         }
@@ -993,7 +1115,7 @@ console.log(pesquisado)
         }
       });
     } else {
-      const resultas = await pesquisa(queryResult.parameters);
+      const resultas = await pesquisa(queryResult.parameters, localidade);
       let celular = resultas[numero - 1].whats;
       const idUser = String(celular)
         .match(/\d+/g)
@@ -1026,7 +1148,7 @@ console.log(pesquisado)
           parameters: {
             mensagem: `${text}`,
             atividade: `${pesquisado}`,
-            cep: `${queryResult.parameters.cep}`,
+            localidade: `${queryResult.parameters.localidade}`,
             rodape: "5️⃣ *Mais resultados*"
           }
         }
@@ -1035,22 +1157,33 @@ console.log(pesquisado)
   }
 
  if (queryResult.intent.displayName === "respostaexpandidadetalhada") {
-    const pesquisado = String(queryResult.parameters.atividade);
+    const localidade = queryResult.parameters.localidade
+   const pesquisado = String(queryResult.parameters.atividade);
 
     const numero = String(queryResult.parameters.texto);
-       if (numero === "*") {
-      
-      const client = await show(session);
-         return response.json({
+         if (numero === "*") {
+    const client = await show(session);
+    if (!client) {    
+    return response.json({followupEventInput: {
+        name: "menu",}
+    });}
+    const apoiolocal = `${client.apoiolocal.toUpperCase()}*`;
+    const cidadeuf = `${client.localidade}/${client.uf}`
+    return response.json({
       followupEventInput: {
-        name: "menu",
-        parameters: { nome: `${client.nome}`, usuario: "Acessar meu cadastro" }
+        name: "menurapido",
+        languageCode: "pt-BR",
+        parameters: {
+          nome: `${client.nome}`,
+          localidade: `${client.localidade.toUpperCase()}`,
+          apoiolocal: `${apoiolocal}`,
+          cidadeuf: `${cidadeuf}`
+        }
       }
-    });
-      
+    });       
     } 
        if (numero === "5") {
-      const resultas = await pesquisasimples(queryResult.parameters);
+      const resultas = await pesquisasimples(queryResult.parameters, localidade);
 
       const texto = `~${pesquisado.toUpperCase()}~ não foi encontrado em nossa base de dados 😞\nMas não se preocupe, expandimos a pesquisa para *todos os resultados na sua localidade* para que possa encontrar o que deseja. 😊`;
       let text = "";
@@ -1070,7 +1203,7 @@ console.log(pesquisado)
           parameters: {
             mensagem: `${texto}${text}`,
             atividade: `${pesquisado}`,
-            cep: `${queryResult.parameters.cep}`,
+            localidade: `${queryResult.parameters.localidade}`,
             rodape: "Esses são todos os resultados."
           }
         }
@@ -1091,7 +1224,8 @@ console.log(pesquisado)
         }
       });
     } else {
-      const resultas = await pesquisa(queryResult.parameters);
+      
+      const resultas = await pesquisasimples(queryResult.parameters, localidade);
       let celular = resultas[numero - 1].whats;
       const idUser = String(celular)
         .match(/\d+/g)
@@ -1124,7 +1258,7 @@ console.log(pesquisado)
           parameters: {
             mensagem: `${text}`,
             atividade: `${pesquisado}`,
-            cep: `${queryResult.parameters.cep}`,
+            localidade: `${queryResult.parameters.localidade}`,
             rodape: "5️⃣ *Mais resultados*"
           }
         }
@@ -1559,13 +1693,225 @@ console.log(pesquisado)
   }
   
   
+   if (queryResult.intent.displayName === "menurapido") {
+    const pesquisado = String(queryResult.parameters.atividade);
+    console.log("teste CEP")
+    console.log(queryResult.parameters.localidade)
+    const localidade = (queryResult.parameters.localidade)
+   if (pesquisado === "1") {      
+     return response.json({
+        followupEventInput: {
+          name: "perguntacep",
+          languageCode: "pt-BR"
+        }});       
+    } 
+     if (pesquisado === "2") {
+       const client = await show(session);
+    return response.json({
+        followupEventInput: {
+          name: "cadastro",
+          languageCode: "pt-BR",
+          parameters: {
+            nome: `${client.nomecompleto}`,
+            telefone: `${client.telefone}`,
+            cep: `${client.cep}`,
+            numero: `${client.numero}`,
+            apoiolocal: `${client.apoiolocal.toUpperCase()}`
+          }
+        }
+      });
+     }  
+     if (pesquisado === "3") {      
+      return response.json({
+      followupEventInput: {
+        name: "cnpj-Cpf",
+        languageCode: "pt-BR"
+      }
+    });   
+    } 
+      if (pesquisado === "4") {      
+       return response.json({
+      followupEventInput: {
+        name: "contato",
+        languageCode: "pt-BR",
+        parameters: {
+          mensagem: "Quer falar com nosso time, segue nossos contatos:"
+        }
+      }
+    });
+    } 
+       if (pesquisado === "4") {      
+     return response.json({
+      followupEventInput: {
+        name: "contato",
+        languageCode: "pt-BR",
+        parameters: {
+          mensagem: "Quer falar com nosso time, segue nossos contatos:"
+        }
+      }
+    });
+    } 
+       if (pesquisado === "0") {      
+      return response.json({
+      followupEventInput: {
+        name: "contato",
+        languageCode: "pt-BR",
+        parameters: {
+          mensagem: `Espero ter ajudado 😊
+
+Obrigado por utilizar *102paraWhats®* 🙏`
+        }
+      }
+    });
+    }else {
+    const resultas = await pesquisa(queryResult.parameters, localidade);
+    let texto = `*${resultas.length}* resultado (s) encontrados para *${pesquisado.toUpperCase()}*.`;
+    let text = "";
+    let numero = "0";
+    let rodape = `~${pesquisado.toUpperCase()}~ não foi encontrado em nossa base de dados 😞\nNão se preocupe, expandimos a pesquisa para *todos os resultados na sua localidade.*`;
+    console.log(pesquisado);
+
+    console.log("teste resultas");
+    console.log(resultas);
+    console.log(resultas.length);
+   
+     
+     if ( resultas.length === 0){
+             
+      const resultas = await pesquisasimples(queryResult.parameters, localidade);
+
+      texto =   `~${pesquisado.toUpperCase()}~ não foi encontrado em nossa base de dados 😞\nMas não se preocupe, expandimos a pesquisa para *todos os resultados na sua localidade* para que possa encontrar o que deseja. 😊`;
+        
+        
+        
+      let text = "";
+ console.log("resultas tudo");
+      console.log(resultas);
+
+      resultas.forEach((search, index) => {
+        text += `\n\n*${index+1} - ${search.nomeFantasia.toUpperCase()}*\n*Whats:* https://wa.me/55${search.whats
+          .match(/\d+/g)
+          .join("")}\n*Atividade:* ${search.atividade.toLowerCase()}`;
+      }); 
+         console.log("retorno");
+       console.log(`${texto}${text}`);
+        return response.json({
+        followupEventInput: {
+          name: "respostaexpandidatudo",
+          languageCode: "pt-BR",
+          parameters: {
+            mensagem: `${texto}${text}`,
+            atividade: `${pesquisado}`,
+            localidade: `${localidade}`,
+            rodape: "Esses são todos os resultados."
+          }
+        }
+      });
+    }
+    
+    resultas.forEach((search, index) => {
+
+      if (index === 1) {
+        texto = `*${resultas.length}* resultado (s) encontrados para *${pesquisado.toUpperCase()}*.`;
+        numero = "2";
+          rodape = "🔢 Digite o *numero* da pesquisa para mais detalhes 😊"
+        text = `\n1️⃣ *${
+          resultas[0].nomeFantasia.toUpperCase()
+        }* \n*Whats:* https://wa.me/55${resultas[0].whats.match(/\d+/g).join("")}
+                \n2️⃣ *${
+                  resultas[1].nomeFantasia.toUpperCase()
+                }* \n*Whats:* https://wa.me/55${resultas[1].whats
+          .match(/\d+/g)
+          .join("")}`;
+      }
+      if (index === 2) {
+        texto = `*${resultas.length}* resultado (s) encontrados para *${pesquisado.toUpperCase()}*.`;
+        numero = "3";
+          rodape = "🔢 Digite o *numero* da pesquisa para mais detalhes 😊"
+        text = `\n1️⃣ *${
+          resultas[0].nomeFantasia.toUpperCase()
+        }* \n*Whats:* https://wa.me/55${resultas[0].whats.match(/\d+/g).join("")} 
+                \n2️⃣ *${
+                  resultas[1].nomeFantasia.toUpperCase()
+                }* \n*Whats:* https://wa.me/55${resultas[1].whats
+          .match(/\d+/g)
+          .join("")}
+                \n3️⃣ *${
+                  resultas[2].nomeFantasia.toUpperCase()
+                }* \n*Whats:* https://wa.me/55${resultas[2].whats
+          .match(/\d+/g)
+          .join("")}`;
+      }
+      if (index === 3) {
+        texto = `*${resultas.length}* resultado (s) encontrados para *${pesquisado.toUpperCase()}*.`;
+        numero = "4";
+         rodape = "🔢 Digite o *numero* da pesquisa para mais detalhes 😊"
+        text = `\n1️⃣ *Nome:* ${
+          resultas[0].nomeFantasia.toUpperCase()
+        } \n*Whats:* https://wa.me/55${resultas[0].whats.match(/\d+/g).join("")}
+                \n2️⃣ *Nome:* ${
+                  resultas[1].nomeFantasia.toUpperCase()
+                } \n*Whats:* https://wa.me/55${resultas[1].whats
+          .match(/\d+/g)
+          .join("")}
+                \n3️⃣ *Nome:* ${
+                  resultas[2].nomeFantasia.toUpperCase()
+                } \n*Whats:* https://wa.me/55${resultas[2].whats
+          .match(/\d+/g)
+          .join("")}
+                \n4️⃣ *Nome:* ${
+                  resultas[3].nomeFantasia.toUpperCase()
+                } \n*Whats:* https://wa.me/55${resultas[3].whats
+          .match(/\d+/g)
+          .join("")}`;
+      }
+      if (index === 4) {
+        texto = `*${resultas.length}* resultado (s) encontrados para *${pesquisado.toUpperCase()}*.`;
+        numero = "4";
+      rodape = "🔢 Digite o *numero* da pesquisa para mais detalhes 😊"
+        text = `\n1️⃣ *${resultas[0].nomeFantasia.toUpperCase()}*\n*Whats:* https://wa.me/55${resultas[0].whats.match(/\d+/g).join("")} 
+                \n2️⃣ *${resultas[1].nomeFantasia.toUpperCase()}*\n*Whats:* https://wa.me/55${resultas[1].whats.match(/\d+/g).join("")} 
+                \n3️⃣ *${resultas[2].nomeFantasia.toUpperCase()}*\n*Whats:* https://wa.me/55${resultas[2].whats.match(/\d+/g).join("")}
+                \n4️⃣ *${resultas[3].nomeFantasia.toUpperCase()}*\n*Whats:* https://wa.me/55${resultas[3].whats.match(/\d+/g).join("")}
+                \n5️⃣ *Mais resultados*`;
+      }
+    });
+
+    return response.json({
+      followupEventInput: {
+        name: "resposta",
+        languageCode: "pt-BR",
+        parameters: {
+          mensagem: `Exibindo *${numero}* de ${texto}\n${text}`,
+          atividade: `${pesquisado}`,
+          rodape: `${rodape}`,
+          localidade: `${localidade}`
+        }
+      }
+    });
+ 
+   
+    }
+   
+   
+   }
+  
+  
+  
+  
+  
+  
+  
+  
+  
   
    if (queryResult.intent.displayName === "teste") {
 
   //const texto = String(queryResult.parameters.teste).match(/\d+/g).join('');
  
-  const testoAjustado = String(queryResult.parameters.teste).normalize("NFD").replace(/[^a-zA-Zs]/g, "").toUpperCase();
-     
+ // const testoAjustado = String(queryResult.parameters.teste).normalize("NFD").replace(/[^a-zA-Zs]/g, "").toUpperCase();
+  console.log(queryResult.parameters.teste)
+     const testoAjustado = queryResult.parameters.teste   
      return response.json({fulfillmentText: `${testoAjustado}`});
     
   }
