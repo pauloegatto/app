@@ -92,8 +92,45 @@ async function sms(cnpj, numerosms) {
   return { retorno, senha };
 }
 
+// function startTimer(duration, display) {
+//     var timer = duration, minutes, seconds;
+//     setInterval(function () {
+//         minutes = parseInt(timer / 60, 10);
+//         seconds = parseInt(timer % 60, 10);
+//         minutes = minutes < 10 ? "0" + minutes : minutes;
+//         seconds = seconds < 10 ? "0" + seconds : seconds;
+//         display.textContent = minutes + ":" + seconds;
+//         if (--timer < 0) {
+//             timer = duration;
+//         }
+//     }, 1000);
+// }
+// window.onload = function () {
+//     var duration = 60 * 5; // Converter para segundos
+//         display = document.querySelector('#timer'); // selecionando o timer
+//     startTimer(duration, display); // iniciando o timer
+// };
+
+async function sms2(numerosms) {
+ console.log("teste sms")
+   let textoAjustado 
+  
+        const parte1= String(numerosms).match(/\d+/g).join('');
+        const parte2 = parte1.slice(1,12);       
+        textoAjustado = `55${parte2}`
+        const celular = textoAjustado
+ 
+ console.log("teste sms")
+  console.log(celular)
+ const texto1 = `Ola!%20Somos%20o%20102paraWhats%20e%20voce%20foi%20indicado%20para%20aparecer%20em%20nosso%20guia%20comercial,%20acesse%20o%20link:%20https://wa.me/554391169015%20e%20na%20a%20opcao%203%20do%20MENU.%20:)`;
+  const texto = texto1
+   const URL_SMS = "http://smsmarketing.smslegal.com.br/index.php?app=webservices&u="
+ 
+  
+ const result =  await axios.get(`${URL_SMS}${process.env.LOGIN_SMS}&p=${process.env.SENHA_SMS}&ta=pv&to=${celular}&msg=${texto}`)
+
+  return ;
+}
 
 
-
-
-module.exports = { viacep, cnpjCpf, TestaCPF, geolocation, sms };
+module.exports = { viacep, cnpjCpf, TestaCPF, geolocation, sms, sms2 };
