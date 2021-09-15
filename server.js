@@ -19,7 +19,7 @@ const {
   deleteCpf,
   updatepfpj
 } = require("./client");
-const { viacep, cnpjCpf, TestaCPF, sms, sms2 } = require("./functions");
+const { viacep, cnpjCpf, TestaCPF, sms, sms2, calcGeo, geolocation } = require("./functions");
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -81,7 +81,7 @@ app.post("/102paraWhats", async (request, response) => {
       textoCnpj
     );
     
-    const texto = await `*Seus dados estão corretos?*
+    const texto = await `*Seus dados estão corretos?* 📝
     \n*Nome fantasia:* ${queryResult.parameters.fantasias.toUpperCase()}
     \n*Razão social:* ${empresa.empresa.nome}
     \n*CNPJ:* ${empresa.empresa.cnpj} 
@@ -138,29 +138,97 @@ app.post("/102paraWhats", async (request, response) => {
   }
 
   if (queryResult.intent.displayName === "cadastro") {
-    const cliente = await create(queryResult.parameters, session);
-//colocar se tem cliente
-    if (cliente.andress.logradouro) {
+    console.log("cadastro")
       return response.json({
-        fulfillmentText: `*Esses dados estão corretos?* 
-    \n*Nome:* ${cliente.parameters.nome.toUpperCase()}
-    \n*Telefone:* ${cliente.parameters.telefone}
-    \n*Rua:* ${cliente.andress.logradouro}, *Nº:* ${cliente.parameters.numero}
-    \n*Localidade:* ${cliente.andress.localidade}/${cliente.andress.uf}
-    \n*Autorizado LGPD:* ${cliente.parameters.apoiolocal.toUpperCase()}
+      followupEventInput: { name: "cadastro1", languageCode: "pt-BR", parameters: {
+          nome: `${queryResult.parameters.nome}`,
+          telefone: `${queryResult.parameters.telefone}`,
+                  
+        } 
+}});
+    }
+ 
+ if (queryResult.intent.displayName === "cadastro1") {
+   console.log("cadastro 1") 
+   const texto =`*CEP invalido!* 🚨\nCaso não saiba seu CEP corretamente você pode informar o nome da *RUA SEM O NÚMERO.*`
+    const cep = String(queryResult.parameters.cep).replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"");
+    if (cep.length  === 8){
+      console.log("cadastro 1 compara cep 8 number")
+      console.log(cep)
+      const andress = await viacep(cep);
+  
+    if (andress.cep) {
+       console.log("cadastro 1 8 tem cep") 
+      if (andress.logradouro) {
+       console.log("cadastro 1 8 tem rua") 
+        console.log(andress.bairro)
+         return response.json({
+      followupEventInput: { name: "cadastro2", languageCode: "pt-BR", parameters: {
+          nome: `${queryResult.parameters.nome}`,
+          telefone: `${queryResult.parameters.telefone}`,
+          cep: `${cep}`,
+          rua: `${andress.logradouro}`,
+          localidade: `${andress.localidade}`,
+          uf: `${andress.uf}`,
+          bairro: `${andress.bairro}`
+        
+        } }
+    });
+    }
+        console.log("cadastro 1 8 não tem rua") 
+         return response.json({
+      followupEventInput: { name: "cadastro2", languageCode: "pt-BR", parameters: {
+          nome: `${queryResult.parameters.nome}`,
+          telefone: `${queryResult.parameters.telefone}`,
+          cep: `${cep}`,
+          localidade: `${andress.localidade}`,
+          uf: `${andress.uf}` 
+          
+        } }
+    });
+    }
+    
+     else  console.log("cadastro 1 8 invalido")  
+    return response.json({
+     followupEventInput: { name: "cadastro1", languageCode: "pt-BR", parameters: {
+          nome: `${queryResult.parameters.nome}`,
+          telefone: `${queryResult.parameters.telefone}`,
+          mensagem: texto,
+        } }
+    });
+      
+    } 
+    console.log("cadastro 1 não tem 8") 
+   return response.json({
+      followupEventInput: { name: "cadastro2", languageCode: "pt-BR", parameters: {
+          nome: `${queryResult.parameters.nome}`,
+          telefone: `${queryResult.parameters.telefone}`,
+          cep: "nao",
+          rua: `${queryResult.parameters.cep}`
+          
+        } }
+    }); 
+  }
+  if (queryResult.intent.displayName === "cadastro2") {
+     console.log("cadastro 2") 
+    const client = await create(queryResult.parameters, session);
+
+    //rua, bairro, localidade, uf
+      return response.json({
+        fulfillmentText: `*Esses dados estão corretos?* 📝
+    \n*Nome:* ${client.parameters.nome.toUpperCase()}
+    \n*Telefone:* ${client.parameters.telefone}
+    \n*Rua:* ${client.rua}, *Nº:* ${client.parameters.numero}
+    \n*Bairro:* ${client.bairro}
+    \n*Localidade:* ${client.localidade}/${client.uf}
+    \n*Termos de Uso:* ${client.parameters.apoiolocal.toUpperCase()}
     \n*SIM* ou *NÃO*`
       });
-    }
-    return response.json({
-      fulfillmentText: `*Esses dados estão corretos?* 
-    \n*Nome:* ${cliente.parameters.nome}
-    \n*Telefone:* ${cliente.parameters.telefone}
-    \n*Localidade:* ${cliente.andress.localidade}/${cliente.andress.uf}
-    \n*Autorizado LGPD:* ${cliente.parameters.apoiolocal.toUpperCase()}
-    \n*SIM* ou *NÃO*`
-    });
+   
+   
   }
 
+  
   if (queryResult.intent.displayName === "perguntacadastro - no") {
     return response.json({
       followupEventInput: { name: "menu", languageCode: "pt-BR" }
@@ -195,7 +263,7 @@ app.post("/102paraWhats", async (request, response) => {
           localidade: `${client.localidade.toUpperCase()}`,
           apoiolocal: `${apoiolocal}`,
           cidadeuf: `${cidadeuf}`,
-          mensagem: `*Agora já está tudo certo para fazer suas pesquisas* 📝\n\n*Sua preferência é para:* 🧐`
+          mensagem: `*Agora já está tudo certo para fazer suas pesquisas* 😁\n\n*${client.nome}, digite o que você deseja pesquisar em ${cidadeuf}?* 🔎`
         }
       }
     });
@@ -220,10 +288,10 @@ app.post("/102paraWhats", async (request, response) => {
     \n2️⃣ *Telefone:* ${client.telefone}
     \n3️⃣ *Endereço:* ${client.rua}\n${client.localidade}/${client.uf}
     \n4️⃣ *N° da rua:* ${client.numero}   
-    \n5️⃣ *Autorização LGPD* ${client.apoiolocal.toUpperCase()}
+    \n5️⃣ *Termos de Uso:* ${client.apoiolocal.toUpperCase()}
     \n0️⃣ *Tudo*
     \n#️⃣ *Excluir o meu cadastro*
-    \n*️⃣ Retornar ao Menu`
+    \nⓂ️ *Retornar ao Menu*`
       
       
       
@@ -291,7 +359,12 @@ app.post("/102paraWhats", async (request, response) => {
   if (queryResult.intent.displayName === "alteracadastrocep") {
     const client = await show(session);
     const andress = await viacep(queryResult.parameters.cep);
-    const newData = { rua: andress.logradouro, ...andress };
+    const numero1 = queryResult.parameters.numero
+    const rua1 = andress.logradouro
+    const cidade1 = andress.localidade
+    const uf1 = andress.uf
+    const geo = await geolocation(numero1, rua1, cidade1 , uf1)
+    const newData = { rua: andress.logradouro, ...andress, lat: geo.lat, lng: geo.lng };
     const parameters = await update(
       { ...queryResult.parameters, ...newData },
       session
@@ -301,7 +374,7 @@ app.post("/102paraWhats", async (request, response) => {
       followupEventInput: {
         name: "menu",
         languageCode: "pt-BR",
-        parameters: { nome: `Seu CEP foi alterado para *${parameters.cep}* com sucesso ${client.nome}`, usuario: "Acessar meu cadastro" }
+        parameters: { nome: `Seu CEP foi alterado para ${parameters.cep} com sucesso.\n${client.nome} `, usuario: "Acessar meu cadastro" }
       }
     });
   }
@@ -355,7 +428,7 @@ app.post("/102paraWhats", async (request, response) => {
     \n*Cep:* ${parameters.cep}
     \n*Rua:* ${andress.logradouro}, *Nº:* ${parameters.numero}
     \n*Localidade:* ${andress.localidade}/${andress.uf}
-    \n*Autorizado LGPD:* ${parameters.apoiolocal.toUpperCase()}
+    \n*Termos de Uso:* ${parameters.apoiolocal.toUpperCase()}
     \n*SIM* ou *NÃO*`
       return response.json({
           followupEventInput: {
@@ -372,7 +445,7 @@ app.post("/102paraWhats", async (request, response) => {
     \n*Telefone:* ${celular.celular}
     \n*Cep: ${parameters.cep}
     \n*Localidade:* ${andress.localidade}/${andress.uf}
-    \n*Autorizado LGPD:* *${parameters.apoiolocal.toUpperCase()}*
+    \n*Termos de Uso:* *${parameters.apoiolocal.toUpperCase()}*
     \n*SIM* ou NÃO*?`
        return response.json({
           followupEventInput: {
@@ -400,13 +473,20 @@ app.post("/102paraWhats", async (request, response) => {
   
      if (queryResult.intent.displayName === "alteracadastro - cancel") {
     const client = await show(session);
+    const apoiolocal = `${client.apoiolocal.toUpperCase()}*`;
+    const cidadeuf = `${client.localidade}/${client.uf}`
     return response.json({
       followupEventInput: {
-        name: "menu",
+        name: "menurapido",
         languageCode: "pt-BR",
-        parameters: { nome: `Entendido ${client.nome}`, usuario: "Acessar meu cadastro" }
+        parameters: {
+          nome: `${client.nome}`,
+          localidade: `${client.localidade.toUpperCase()}`,
+          apoiolocal: `${apoiolocal}`,
+          cidadeuf: `${cidadeuf}`
+        }
       }
-    });
+    });   
   }
   
 
@@ -429,10 +509,10 @@ app.post("/102paraWhats", async (request, response) => {
     \n2️⃣ *Telefone:* ${client.telefone}
     \n3️⃣ *Endereço:* ${client.rua}\n${client.localidade}/${client.uf}
     \n4️⃣ *N° da rua:* ${client.numero}   
-    \n5️⃣ *Autorização LGPD* ${client.apoiolocal.toUpperCase()}
+    \n5️⃣ *Termos de Uso:* ${client.apoiolocal.toUpperCase()}
     \n0️⃣ *Tudo*
     \n#️⃣ *Excluir o meu cadastro*
-    \n*️⃣ Retornar ao Menu`
+    \nⓂ️ *Retornar ao Menu*`
       
       
       
@@ -452,15 +532,15 @@ app.post("/102paraWhats", async (request, response) => {
         return response.json({
           followupEventInput: { name: "cadastro", languageCode: "pt-BR" }
         });
-    const texto = await`🔢 Digite a opção que deseja *alterar*: 
+    const texto = await`🔢 *Digite a opção que deseja alterar*: 
     \n1️⃣ *Nome:* ${client.nomecompleto.toUpperCase()}
     \n2️⃣ *Telefone:* ${client.telefone}
     \n3️⃣ *Endereço:* ${client.rua}\n${client.localidade}/${client.uf}
     \n4️⃣ *N° da rua:* ${client.numero}   
-    \n5️⃣ *Autorização LGPD* ${client.apoiolocal.toUpperCase()}
+    \n5️⃣ *Termos de Uso:* ${client.apoiolocal.toUpperCase()}
     \n0️⃣ *Tudo*
     \n#️⃣ *Excluir o meu cadastro*
-    \n*️⃣ Retornar ao Menu`
+    \nⓂ️ *Retornar ao Menu*`
       
       
       
@@ -702,7 +782,7 @@ Obrigado por utilizar *102paraWhats®* 🙏`
   console.log("teste CEP")
     console.log(queryResult.parameters.cep)
     const localidade = (queryResult.parameters.localidade)
-    const resultas = await pesquisa(queryResult.parameters, localidade);
+    const resultas = await pesquisa(queryResult.parameters, localidade, session);
     
     console.log("teste CEP")
     console.log("teste resultas");
@@ -716,7 +796,7 @@ Obrigado por utilizar *102paraWhats®* 🙏`
     console.log(resultas);
     console.log(resultas.length);
     if ( resultas.length === 0){
-             
+          console.log("pesquisa simples");    
       const resultas = await pesquisasimples(queryResult.parameters, localidade);
        await resultas.sort(function (a, b) {
 	
@@ -850,14 +930,37 @@ Obrigado por utilizar *102paraWhats®* 🙏`
     const pesquisado = String(queryResult.parameters.atividade);
     const numero = String(queryResult.parameters.texto);
   const localidade = queryResult.parameters.localidade;
+   const menu = String(queryResult.parameters.texto).toUpperCase();
     console.log("resposta");
-    // console.log(queryResult.parameters.texto);
-    // console.log(pesquisado);
-    // console.log(queryResult.parameters.atividade);
-    // console.log(queryResult.parameters.cep);
-    // console.log(queryResult);
+   
+         if (menu === "M") {      
+        const client = await show(session,);
+
+        return response.json({
+      followupEventInput: {
+        name: "menucadastrado",
+        languageCode: "pt-BR",
+        parameters: {
+          nome: `${client.nome}`
+        }
+      }
+    });
+    }  
+     if (menu === "MENU") {      
+        const client = await show(session,);
+
+        return response.json({
+      followupEventInput: {
+        name: "menucadastrado",
+        languageCode: "pt-BR",
+        parameters: {
+          nome: `${client.nome}`
+        }
+      }
+    });
+    }
     
-    if (numero === "*") {
+    if (menu === "P") {
     const client = await show(session);
     if (!client) {    
     return response.json({followupEventInput: {
@@ -879,7 +982,7 @@ Obrigado por utilizar *102paraWhats®* 🙏`
     });       
     } 
     if (numero === "5") {
-      const resultas = await pesquisa(queryResult.parameters, localidade);
+      const resultas = await pesquisa(queryResult.parameters, localidade, session);
 
       const texto = `Exibindo *todos os ${resultas.length}* resultados encontrados para *${pesquisado.toUpperCase()}* em *${localidade.toUpperCase()}*.`;
       let text = "";
@@ -921,7 +1024,7 @@ Obrigado por utilizar *102paraWhats®* 🙏`
       
     } 
     else {
-      const resultas = await pesquisa(queryResult.parameters, localidade);
+      const resultas = await pesquisa(queryResult.parameters, localidade, session);
      const celular = resultas[numero - 1].whats;
       const idUser = String(celular)
         .match(/\d+/g)
@@ -930,7 +1033,7 @@ Obrigado por utilizar *102paraWhats®* 🙏`
     let cidadematriz = (resultas[numero - 1].cidadematriz).toUpperCase();      
       let localidades = localidade.toUpperCase();    
       let local = "";
-      if (cidadematriz === localidades) local = `\n\n*Essa é uma empresa ou serviço de Empreendedores da sua cidade*`;      
+      if (cidadematriz === localidades) local = `\n\nEssa é uma empresa ou serviço de Empreendedores da sua cidade`;      
       let text = "";
 
       resultas.forEach((search, index) => {
@@ -970,9 +1073,35 @@ Obrigado por utilizar *102paraWhats®* 🙏`
   if (queryResult.intent.displayName === "respostatudo") {
     const pesquisado = String(queryResult.parameters.atividade);
   const localidade = queryResult.parameters.localidade;
-    const numero = String(queryResult.parameters.texto);
+  const numero = String(queryResult.parameters.texto);
+  const menu = String(queryResult.parameters.texto).toUpperCase();
+        if (menu === "M") {      
+        const client = await show(session,);
 
-             if (numero === "*") {
+        return response.json({
+      followupEventInput: {
+        name: "menucadastrado",
+        languageCode: "pt-BR",
+        parameters: {
+          nome: `${client.nome}`
+        }
+      }
+    });
+    }  
+     if (menu === "MENU") {      
+        const client = await show(session,);
+
+        return response.json({
+      followupEventInput: {
+        name: "menucadastrado",
+        languageCode: "pt-BR",
+        parameters: {
+          nome: `${client.nome}`
+        }
+      }
+    });
+    }
+        if (menu === "P") {
     const client = await show(session);
     if (!client) {    
     return response.json({followupEventInput: {
@@ -1006,7 +1135,7 @@ Obrigado por utilizar *102paraWhats®* 🙏`
         }
       });
     } else {
-      const resultas = await pesquisa(queryResult.parameters, localidade);
+      const resultas = await pesquisa(queryResult.parameters, localidade, session);
       let celular = resultas[numero - 1].whats;
       const idUser = String(celular)
         .match(/\d+/g)
@@ -1015,7 +1144,7 @@ Obrigado por utilizar *102paraWhats®* 🙏`
     let cidadematriz = (resultas[numero - 1].cidadematriz).toUpperCase();      
       let localidades = localidade.toUpperCase();    
       let local = "";
-      if (cidadematriz === localidades) local = `\n\n*Essa é uma empresa ou serviço de Empreendedores da sua cidade*`;      
+      if (cidadematriz === localidades) local = `\n\nEssa é uma empresa ou serviço de Empreendedores da sua cidade`;      
       let text = "";
 
       resultas.forEach((search, index) => {
@@ -1139,7 +1268,7 @@ console.log(pesquisado)
       let cidadematriz = (resultas[numero - 1].cidadematriz).toUpperCase();      
       let localidades = localidade.toUpperCase();    
       let local = "";
-      if (cidadematriz === localidades) local = `\n\n*Essa é uma empresa ou serviço de Empreendedores da sua cidade*`;      
+      if (cidadematriz === localidades) local = `\n\nEssa é uma empresa ou serviço de Empreendedores da sua cidade`;      
       let text = "";
 
       resultas.forEach((search, index) => {
@@ -1183,7 +1312,34 @@ console.log(pesquisado)
     const pesquisado = String(queryResult.parameters.atividade);
   const localidade = queryResult.parameters.localidade
     const numero = String(queryResult.parameters.texto);
-          if (numero === "*") {
+     const menu = String(queryResult.parameters.texto).toUpperCase();
+      if (menu === "M") {      
+        const client = await show(session,);
+
+        return response.json({
+      followupEventInput: {
+        name: "menucadastrado",
+        languageCode: "pt-BR",
+        parameters: {
+          nome: `${client.nome}`
+        }
+      }
+    });
+    }  
+     if (menu === "MENU") {      
+        const client = await show(session,);
+
+        return response.json({
+      followupEventInput: {
+        name: "menucadastrado",
+        languageCode: "pt-BR",
+        parameters: {
+          nome: `${client.nome}`
+        }
+      }
+    });
+    }
+            if (menu === "P") {
     const client = await show(session);
     if (!client) {    
     return response.json({followupEventInput: {
@@ -1205,7 +1361,7 @@ console.log(pesquisado)
     });       
     } 
        if (numero === "5") {
-      const resultas = await pesquisa(queryResult.parameters, localidade);
+      const resultas = await pesquisa(queryResult.parameters, localidade, session);
 
       const texto = `Exibindo *todos os ${resultas.length}* resultados encontrados para *${pesquisado.toUpperCase()}* em *${localidade.toUpperCase()}*.`;
       let text = "";
@@ -1246,7 +1402,7 @@ console.log(pesquisado)
         }
       });
     } else {
-      const resultas = await pesquisa(queryResult.parameters, localidade);
+      const resultas = await pesquisa(queryResult.parameters, localidade, session);
       let celular = resultas[numero - 1].whats;
       const idUser = String(celular)
         .match(/\d+/g)
@@ -1255,7 +1411,7 @@ console.log(pesquisado)
     let cidadematriz = (resultas[numero - 1].cidadematriz).toUpperCase();      
       let localidades = localidade.toUpperCase();    
       let local = "";
-      if (cidadematriz === localidades) local = `\n\n*Essa é uma empresa ou serviço de Empreendedores da sua cidade*`;      
+      if (cidadematriz === localidades) local = `\n\nEssa é uma empresa ou serviço de Empreendedores da sua cidade`;      
       let text = "";
 
       resultas.forEach((search, index) => {
@@ -1381,7 +1537,7 @@ console.log(pesquisado)
     let cidadematriz = (resultas[numero - 1].cidadematriz).toUpperCase();      
       let localidades = localidade.toUpperCase();    
       let local = "";
-      if (cidadematriz === localidades) local = `\n\n*Essa é uma empresa ou serviço de Empreendedores da sua cidade*`;      
+      if (cidadematriz === localidades) local = `\n\nEssa é uma empresa ou serviço de Empreendedores da sua cidade`;      
       let text = "";
 
       resultas.forEach((search, index) => {
@@ -1943,7 +2099,10 @@ E-mail: ${cnpj.email}
       }
     });
     } else {
-    const resultas = await pesquisa(queryResult.parameters, localidade);
+    console.log("menu rapido pesquisa")
+      
+      console.log(session)
+      const resultas = await pesquisa(queryResult.parameters, localidade, session);
     let texto = `*${resultas.length}* resultado (s) encontrados para *${pesquisado.toUpperCase()}* em *${localidade.toUpperCase()}*.`;
     let text = "";
     let numero = "0";
@@ -2002,76 +2161,76 @@ console.log(resultas)
         if (index === 0) {
         texto = `*${resultas.length}* resultado (s) encontrados para *${pesquisado.toUpperCase()}* em *${localidade.toUpperCase()}*.`;
         numero = "1";
-          rodape = "🔢 Digite o *numero* da pesquisa para mais detalhes 😊"
+          rodape = "🔢 Digite o *numero* do resultado de sua pesquisa para mais detalhes 🗃️"
         text += `\n1️⃣ *${
           resultas[0].nomeFantasia.toUpperCase()
-        }* \n*Whats:* https://wa.me/55${resultas[0].whats.match(/\d+/g).join("")}`;
+        }* \n*Whats:* https://wa.me/55${resultas[0].whats.match(/\d+/g).join("")}\n${resultas[0].distancia.toFixed(1)} Km`;
      
       
       }
       if (index === 1) {
         texto = `*${resultas.length}* resultado (s) encontrados para *${pesquisado.toUpperCase()}* em *${localidade.toUpperCase()}*.`;
         numero = "2";
-          rodape = "🔢 Digite o *numero* da pesquisa para mais detalhes 😊"
+          rodape = "🔢 Digite o *numero* do resultado de sua pesquisa para mais detalhes 🗃️"
         text = `\n1️⃣ *${
           resultas[0].nomeFantasia.toUpperCase()
-        }* \n*Whats:* https://wa.me/55${resultas[0].whats.match(/\d+/g).join("")}
+        }* \n*Whats:* https://wa.me/55${resultas[0].whats.match(/\d+/g).join("")}\n${resultas[0].distancia.toFixed(1)} Km
                 \n2️⃣ *${
                   resultas[1].nomeFantasia.toUpperCase()
                 }* \n*Whats:* https://wa.me/55${resultas[1].whats
           .match(/\d+/g)
-          .join("")}`;
+          .join("")}\n${resultas[1].distancia.toFixed(1)} Km`;
       }
       if (index === 2) {
         texto = `*${resultas.length}* resultado (s) encontrados para *${pesquisado.toUpperCase()}* em *${localidade.toUpperCase()}*.`;
         numero = "3";
-          rodape = "🔢 Digite o *numero* da pesquisa para mais detalhes 😊"
+          rodape = "🔢 Digite o *numero* do resultado de sua pesquisa para mais detalhes 🗃️"
         text = `\n1️⃣ *${
           resultas[0].nomeFantasia.toUpperCase()
-        }* \n*Whats:* https://wa.me/55${resultas[0].whats.match(/\d+/g).join("")} 
+        }* \n*Whats:* https://wa.me/55${resultas[0].whats.match(/\d+/g).join("")}\n${resultas[1].distancia.toFixed(1)} Km 
                 \n2️⃣ *${
                   resultas[1].nomeFantasia.toUpperCase()
                 }* \n*Whats:* https://wa.me/55${resultas[1].whats
           .match(/\d+/g)
-          .join("")}
+          .join("")}\n${resultas[1].distancia.toFixed(1)} Km
                 \n3️⃣ *${
                   resultas[2].nomeFantasia.toUpperCase()
                 }* \n*Whats:* https://wa.me/55${resultas[2].whats
           .match(/\d+/g)
-          .join("")}`;
+          .join("")}\n${resultas[2].distancia.toFixed(1)} Km`;
       }
       if (index === 3) {
         texto = `*${resultas.length}* resultado (s) encontrados para *${pesquisado.toUpperCase()}* em *${localidade.toUpperCase()}*.`;
         numero = "4";
-         rodape = "🔢 Digite o *numero* da pesquisa para mais detalhes 😊"
+         rodape = "🔢 Digite o *numero* do resultado de sua pesquisa para mais detalhes 🗃️"
         text = `\n1️⃣ *Nome:* ${
           resultas[0].nomeFantasia.toUpperCase()
-        } \n*Whats:* https://wa.me/55${resultas[0].whats.match(/\d+/g).join("")}
+        } \n*Whats:* https://wa.me/55${resultas[0].whats.match(/\d+/g).join("")}\n${resultas[0].distancia.toFixed(1)} Km
                 \n2️⃣ *Nome:* ${
                   resultas[1].nomeFantasia.toUpperCase()
                 } \n*Whats:* https://wa.me/55${resultas[1].whats
           .match(/\d+/g)
-          .join("")}
+          .join("")}\n${resultas[1].distancia.toFixed(1)} Km
                 \n3️⃣ *Nome:* ${
                   resultas[2].nomeFantasia.toUpperCase()
                 } \n*Whats:* https://wa.me/55${resultas[2].whats
           .match(/\d+/g)
-          .join("")}
+          .join("")}\n${resultas[2].distancia.toFixed(1)} Km
                 \n4️⃣ *Nome:* ${
                   resultas[3].nomeFantasia.toUpperCase()
                 } \n*Whats:* https://wa.me/55${resultas[3].whats
           .match(/\d+/g)
-          .join("")}`;
+          .join("")}\n${resultas[3].distancia.toFixed(1)} Km`;
       }
       if (index === 4) {
         texto = `*${resultas.length}* resultado (s) encontrados para *${pesquisado.toUpperCase()}* em *${localidade.toUpperCase()}*.`;
         numero = "4";
-      rodape = "🔢 Digite o *numero* da pesquisa para mais detalhes 😊"
-        text = `\n1️⃣ *${resultas[0].nomeFantasia.toUpperCase()}*\n*Whats:* https://wa.me/55${resultas[0].whats.match(/\d+/g).join("")} 
-                \n2️⃣ *${resultas[1].nomeFantasia.toUpperCase()}*\n*Whats:* https://wa.me/55${resultas[1].whats.match(/\d+/g).join("")} 
-                \n3️⃣ *${resultas[2].nomeFantasia.toUpperCase()}*\n*Whats:* https://wa.me/55${resultas[2].whats.match(/\d+/g).join("")}
-                \n4️⃣ *${resultas[3].nomeFantasia.toUpperCase()}*\n*Whats:* https://wa.me/55${resultas[3].whats.match(/\d+/g).join("")}
-                \n5️⃣ *Mais resultados*`;
+      rodape = "🔢 Digite o *numero* do resultado de sua pesquisa para mais detalhes 🗃️"
+        text = `\n1️⃣ *${resultas[0].nomeFantasia.toUpperCase()}*\n*Whats:* https://wa.me/55${resultas[0].whats.match(/\d+/g).join("")}\n${resultas[0].distancia.toFixed(1)} Km
+                \n2️⃣ *${resultas[1].nomeFantasia.toUpperCase()}*\n*Whats:* https://wa.me/55${resultas[1].whats.match(/\d+/g).join("")}\n${resultas[1].distancia.toFixed(1)} Km 
+                \n3️⃣ *${resultas[2].nomeFantasia.toUpperCase()}*\n*Whats:* https://wa.me/55${resultas[2].whats.match(/\d+/g).join("")}\n${resultas[2].distancia.toFixed(1)} Km
+                \n4️⃣ *${resultas[3].nomeFantasia.toUpperCase()}*\n*Whats:* https://wa.me/55${resultas[3].whats.match(/\d+/g).join("")}\n${resultas[3].distancia.toFixed(1)} Km
+                \n5️⃣ *Mais resultados...*`;
       }
     });
 
@@ -2099,6 +2258,7 @@ console.log(resultas)
   if (queryResult.intent.displayName === "menucadastrado") {
 
   const localidade = queryResult.parameters.localidade;
+   const menu = String(queryResult.parameters.texto).toUpperCase()
     const numero = String(queryResult.parameters.texto);
     if (numero === "1") {      
      return response.json({
@@ -2110,15 +2270,15 @@ console.log(resultas)
      if (numero === "2") {
        const client = await show(session,);
   
-       const texto = await`🔢 Digite a opção que deseja *alterar*: 
+       const texto = await`🔢 *Digite a opção que deseja alterar*: 
     \n1️⃣ *Nome:* ${client.nomecompleto.toUpperCase()}
     \n2️⃣ *Telefone:* ${client.telefone}
     \n3️⃣ *Endereço:* ${client.rua}\n${client.localidade}/${client.uf}
     \n4️⃣ *N° da rua:* ${client.numero}   
-    \n5️⃣ *Autorização LGPD* ${client.apoiolocal.toUpperCase()}
+    \n5️⃣ *Termos de Uso:* ${client.apoiolocal.toUpperCase()}
     \n0️⃣ *Tudo*
     \n#️⃣ *Excluir o meu cadastro*
-    \n*️⃣ Retornar ao Menu`
+    \nⓂ️ *Retornar ao Menu*`
       
       
       
@@ -2154,7 +2314,7 @@ console.log(resultas)
       }
     });
     } 
-       if (numero === "*") {      
+       if (menu === "P") {      
         const client = await show(session,);
   
         const apoiolocal = `${client.apoiolocal.toUpperCase()}*`;
@@ -2172,7 +2332,8 @@ console.log(resultas)
       }
     });   
     } 
-       if (numero === "0") {      
+       
+    if (numero === "0") {      
       return response.json({
       followupEventInput: {
         name: "contato",
@@ -2281,7 +2442,7 @@ await axios.patch(`${process.env.URL_SHEET3}/cnpj/${cnpjCpf}`,{
      
      const localidade = client.localidade;
      console.log(localidade)
-     const resultas = await pesquisa(queryResult.parameters, localidade);
+     const resultas = await pesquisa(queryResult.parameters, localidade, session);
     let texto = `*${resultas.length}* resultado (s) encontrados para *${pesquisado.toUpperCase()}* em *${localidade.toUpperCase()}*.`;
     let text = "";
     let numero = "0";
@@ -2443,7 +2604,7 @@ console.log(resultas)
   
   
    if (queryResult.intent.displayName === "teste") {
-   console.log(queryResult)
+   //console.log(queryResult)
 //   //const texto = String(queryResult.parameters.teste).match(/\d+/g).join('');
  
 //  // const testoAjustado = String(queryResult.parameters.teste).normalize("NFD").replace(/[^a-zA-Zs]/g, "").toUpperCase();
@@ -2473,7 +2634,10 @@ console.log(resultas)
 //       //console.log(queryResult);
 //      //const texto = queryResult.parameters.location
 //       console.log(queryResult.parameters.pesquisa);
-   const telefone = queryResult.parameters.texto
+ 
+     
+     
+     const telefone = queryResult.parameters.texto
      const cell = await arrumaCelular2(telefone);
      console.log(queryResult.parameters.texto)
      
@@ -2481,9 +2645,130 @@ console.log(resultas)
     const numerosms = celular.celular
     
    await sms2 (numerosms)
+  const texto =  (queryResult.parameters.texto) .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"")
+     const client = await show(session);
      
-     return response.json({fulfillmentText: `ok ${celular.celular}`});
+//      const data = [{}]
+     
+     
+     
+     
+// function calcGeo1(lat1, lng1, lat2, lng2) {
+//     Number.prototype.toRad = function () {
+//         return this * Math.PI / 180;
+//     }
+
+//     let latitude1 = Number(lat1);
+//     let longitude1 = Number(lng1);
+//     let latitude2 = Number(lat2);
+//     let longitude2 = Number(lng2);
+
+//     let R = 6371; // km 
+//     //has a problem with the .toRad() method below.
+//     let x1 = latitude2 - latitude1;
+//     let dLat = x1.toRad();
+//     let x2 = longitude2 - longitude1;
+//     let dLon = x2.toRad();
+//     let a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+//         Math.cos(lat1.toRad()) * Math.cos(lat2.toRad()) *
+//         Math.sin(dLon / 2) * Math.sin(dLon / 2);
+//     let c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+//     let d = R * c;
+
+//     return d;
+// }
+
+// async function geolocation1(numero1, rua1, cidade1, uf1) {
+
+//     //https://maps.googleapis.com/maps/api/geocode/json?address=340+Avenida+Pirapo,+Apucarana,+PR&key=AIzaSyBEvaFSyLB4d_HD2ylCYX3ZqSISAg8cKwQ
+
+// const ruas = rua1.normalize("NFD").replace(/[^a-zA-Zs]/g, "")
+// const rua =  ruas.replace(" ", "+");
+// const cidades = cidade1.normalize("NFD").replace(/[^a-zA-Zs]/g, "")
+// const cidade =  cidades.replace(" ", "+");
+//     console.log("teste geolocation")
+//     console.log(rua)
+//     console.log(cidade)
+//     console.log(numero1)
+//     console.log(uf1)
+
+//     const result = await axios.get(`${process.env.URL_GEO}${numero1}+${rua},+${cidade},+${uf1}&key=${process.env.KEY_GEO}`);
+//     const {
+//         lat,
+//         lng
+//     } = result.data.results[0].geometry.location;
+//  console.log("retorno geolocation")
+//  // console.log(result)
+//     //const pontoA = 0.16744805938694565
+//     //const pontoB = 1.4311955821362077
+
+//     return {
+//         lat,
+//         lng
+//     };
+// }
+
+
+
+//     const data =  await geolocation(client.numero, client.rua, client.localidade, client.uf);
   
+     
+// console.log("2 retorno geolocation")
+// console.log(data.lat)
+// console.log(data.lng)
+
+//   const mockResults = [{
+//             "name": "farmácia Videira",
+//             "lat": '-23.5525957',
+//             "lng": '-51.4588932'
+//         }, {
+//             "name": "farmácia Cristo Profeta",
+//             "lat": -23.5528456,
+//             "lng": -51.4729313
+//         },
+//         {
+//             "name": "farmácia Vila nova",
+//             "lat": '-23.5579259',
+//             "lng": '-51.4415918'
+//         }
+//     ]
+  
+  
+//   console.log("arrei normal")
+//   console.log(mockResults[0].lat)
+//   console.log(mockResults[0].lng)
+//    console.log("arrei normal com aspas")
+//   console.log(mockResults[1].lat)
+//   console.log(mockResults[1].lng)
+//      console.log("arrei")
+//   console.log(mockResults)
+//    queryResult.parameters.atividae = "farmácia"
+//      const localidade = client.localidade
+// const resultas = await pesquisa(queryResult.parameters, localidade, session);
+// console.log("arrei resultas")
+//   console.log(resultas[0].lat)
+//   console.log(resultas[0].lng) 
+//      //.replace(/['"]+/g, '')
+//      const distancias = resultas.map((result) => {
+//         return {
+//             ...result,
+//             distancia: calcGeo(data.lat, data.lng, Number(result.lat), Number(result.lng))
+//         }
+//     });
+//   console.log("arrey distancias")
+//   console.log(distancias)
+//     console.log("arrey distancias ordenadas")
+//   console.log(distancias.sort(function (a, b) {
+//         return (a.distancia > b.distancia) ? 1 : ((b.distancia > a.distancia) ? -1 : 0);
+//     }))
+
+
+
+
+
+  return response.json({fulfillmentText: `ok`});
+  
+
    
    }
     
