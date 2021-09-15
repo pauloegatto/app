@@ -1,6 +1,6 @@
 
 const axios = require("axios");
-const { viacep, cnpjCpf, geolocation, sms } = require("../functions");
+const { viacep, cnpjCpf, geolocation, sms, calcGeo } = require("../functions");
 
 async function show(query) {
   const data = query.split('/');
@@ -41,6 +41,12 @@ async function createempresa(parameters, session, textoCnpj) {
   
       const cell = await arrumaCelular2(parameters.whats);
       const celular = await arrumaCelular3(cell.celular);
+  const numero1 = empresa.numero
+  const rua1 = empresa.logradouro
+  const cidade1 = empresa.municipio
+  const uf1 = empresa.uf
+  const geo = await geolocation(numero1, rua1, cidade1 , uf1)
+  console.log("teste geo create")
   
   await axios.post(
     process.env.URL_SHEET3,
@@ -73,7 +79,9 @@ async function createempresa(parameters, session, textoCnpj) {
       email: parameters.email.toLowerCase(),
       subbusca1: "não informado",
       subbusca2: "não informado",
-      subbusca3: "não informado"
+      subbusca3: "não informado",
+      lat: String(geo.lat),
+      lng: String(geo.lng)
     },
     {
       auth: {
@@ -89,19 +97,45 @@ async function createempresa(parameters, session, textoCnpj) {
 
 
 async function create(parameters, session) {
-  const andress = await viacep(parameters.cep);
+  console.log("função create")
+  let rua = parameters.rua
+  let bairro = parameters.bairro
+  let localidade = parameters.localidade
+  let uf = parameters.uf
+  console.log(rua)
+  console.log(bairro)
+  console.log(localidade)
+  console.log(uf)
+  console.log("cep create")
+  console.log(parameters.cep)
+  if (parameters.cep !== "nao"){ 
+  console.log("função create tem cep")
+    const andress = await viacep(parameters.cep);
+    console.log(andress)
+  if (andress.logradouro) { 
+  rua = andress.logradouro;
+  bairro = andress.bairro;
+  localidade = andress.localidade;
+  uf = andress.uf;}
   
+  localidade = andress.localidade;
+  uf = andress.uf;
   
-//   const numero1 = parameters.numero
-//   const rua1 = andress.logradouro
-//   const cidade1 = andress.localidade
-//   const uf1 = andress.uf
-//   const geo = await geolocation(numero1, rua1, cidade1 , uf1)
-//   console.log("teste geo create")
-//   console.log(geo)
-//   console.log(geo.results.geometry.location.lat)
-//   console.log(geo.location.lat)
+  }
+  console.log("função create rua, bairro...")
   
+  console.log(rua)
+  console.log(bairro)
+  console.log(localidade)
+  console.log(uf)
+  
+  const numero1 = parameters.numero
+  const rua1 = rua
+  const cidade1 = localidade
+  const uf1 = uf
+  const geo = await geolocation(numero1, rua1, cidade1 , uf1)
+  console.log("teste geo create")
+
   
   const data = session.split('/');
   const numero = data[data.length - 1]
@@ -115,12 +149,14 @@ async function create(parameters, session) {
       nomecompleto: parameters.nome.toUpperCase(),
       telefone: parameters.telefone.toUpperCase(),
       cep: parameters.cep,
-      localidade: andress.localidade,
-      uf: andress.uf,
-      rua: andress.logradouro,
+      localidade: localidade,
+      uf: uf,
+      rua: rua,
       numero: parameters.numero,
-      bairro: andress.bairro,
-      apoiolocal: parameters.apoiolocal
+      bairro: bairro,
+      apoiolocal: parameters.apoiolocal,
+      lat: geo.lat,
+      lng: geo.lng
     },
     {
       auth: {
@@ -129,7 +165,7 @@ async function create(parameters, session) {
       }
     }
   );
-  return { parameters, andress };
+  return { parameters, rua, bairro, localidade, uf };
 }
 
 
@@ -245,33 +281,14 @@ const textoCnpj = String(parameters);
 // }
 
 
-async function pesquisa (parameters, localidade) {
-  console.log("pesquisa")
-  //    const cepnovo = String(parameters.cep)
-//       .match(/\d+/g)
-//       .join("");
-  
-//   let textoAjustado 
-  
-
-//         const parte1 = cepnovo.slice(0,5);
-//         const parte2 = cepnovo.slice(5,8);
-      
-
-//         textoAjustado = `${parte1}-${parte2}`
-//         const cep = textoAjustado
-  
-//   console.log("teste pesquisa cep")
-//       console.log(parameters.cep)
+async function pesquisa (parameters, localidade, session ) {
+  console.log("pesquisa/session")
+  console.log(session)
+  const client = await show(session);
  
-//    console.log(cep)
-  
-//  const andress = await viacep(cep);
-  
   const atividade = String(parameters.atividade).normalize("NFD").replace(/[^a-zA-Zs]/g, "").toUpperCase();
- console.log("pesquisa")
-   console.log(atividade)
-
+  console.log("pesquisa")
+  console.log(atividade)
   const result = await axios.get(`${process.env.URL_SHEET3}`,{
     auth: {
       username: process.env.LOGIN_SHEET3,
@@ -279,27 +296,21 @@ async function pesquisa (parameters, localidade) {
     }
   });
 console.log("pesquisa 1")
- const pesquisa1 = result.data.filter(search => search.localidade === localidade.toUpperCase()).filter(search => search.atividade === atividade);
-
-console.log(pesquisa1)
- console.log("pesquisa 2")
-  const pesquisa2 = result.data.filter(search => search.localidade === localidade.toUpperCase()).filter(search => search.nomeFantasia === atividade);
-
- console.log(pesquisa2)
-  
- 
- console.log("pesquisa 3")
-  const pesquisa3 = result.data.filter(search => search.localidade === localidade.toUpperCase()).filter(search => search.subbusca1 === atividade);
- console.log(pesquisa3)
-  console.log("pesquisa 4")
-  const pesquisa4 = result.data.filter(search => search.localidade === localidade.toUpperCase()).filter(search => search.subbusca2 === atividade);
- console.log(pesquisa4)
- console.log("pesquisa 5")
-  const pesquisa5 = result.data.filter(search => search.localidade === localidade.toUpperCase()).filter(search => search.subbusca3 === atividade);
- console.log(pesquisa5)
-
-  
-  console.log("pesquisa 1 e 2")
+const pesquisa1 = result.data.filter(search => search.localidade === localidade.toUpperCase()).filter(search => search.atividade === atividade);
+//console.log(pesquisa1)
+console.log("pesquisa 2")
+const pesquisa2 = result.data.filter(search => search.localidade === localidade.toUpperCase()).filter(search => search.nomeFantasia === atividade);
+//console.log(pesquisa2)
+console.log("pesquisa 3")
+const pesquisa3 = result.data.filter(search => search.localidade === localidade.toUpperCase()).filter(search => search.subbusca1 === atividade);
+//console.log(pesquisa3)
+console.log("pesquisa 4")
+const pesquisa4 = result.data.filter(search => search.localidade === localidade.toUpperCase()).filter(search => search.subbusca2 === atividade);
+//console.log(pesquisa4)
+console.log("pesquisa 5")
+const pesquisa5 = result.data.filter(search => search.localidade === localidade.toUpperCase()).filter(search => search.subbusca3 === atividade);
+//console.log(pesquisa5)
+console.log("pesquisa 1 e 2")
    Array.prototype.push.apply(pesquisa1, pesquisa2);
    Array.prototype.push.apply(pesquisa1, pesquisa3);
    Array.prototype.push.apply(pesquisa1, pesquisa4);
@@ -315,15 +326,33 @@ console.log(pesquisa1)
 //   certa
 //   return result.data.filter(search => search.localidade === localidade.toUpperCase()).filter(search => search.atividade === atividade);
  console.log("pesquisa retorno")
-   console.log(Array(pesquisa1.data))
+   //console.log(Array(pesquisa1.data))
    console.log("pesquisa retorno result")
-  console.log(result.data.filter(search => search.localidade === localidade.toUpperCase()).filter(search => search.atividade === atividade))
-  
+   if (client.lat){
+   
+     console.log("lat e lng")
+     let lat = client.lat.replace(",", ".")
+     let lng = client.lng.replace(",", ".")
+    
+
+
+    const distancias = pesquisa1.map((result) => {
+        return {
+            ...result,
+            distancia: calcGeo(Number(lat), Number(lng), Number(result.lat), Number(result.lng))
+        }
+    });
+
+console.log(distancias)
+
+   
+  return distancias.sort(function (a, b) {
+        return (a.distancia > b.distancia) ? 1 : ((b.distancia > a.distancia) ? -1 : 0);
+    });
+  }
   return pesquisa1;
   
   
- // console.log(lista)
-  //return lista.data.filter(search => search.atividade === atividade);
 }
 async function pesquisasimples (parameters, localidade) {
    console.log("pesquisasimples")
@@ -337,9 +366,11 @@ async function pesquisasimples (parameters, localidade) {
     }
   });
 
-
-  
-  return result.data.filter(search => search.localidade === localidade.toUpperCase());
+const atividade = "TELEFONE UTEIS"
+  const pesquisa1 = result.data.filter(search => search.localidade === localidade.toUpperCase());
+  const pesquisa2 = result.data.filter(search => search.atividade === atividade);
+   Array.prototype.push.apply(pesquisa1, pesquisa2);
+  return pesquisa1;
   
   
   //console.log(andress)
