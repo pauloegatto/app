@@ -328,9 +328,11 @@ console.log(pesquisa1)
  console.log("pesquisa retorno")
    //console.log(Array(pesquisa1.data))
    console.log("pesquisa retorno result")
-   if (client.lat){
-   
-     console.log("lat e lng")
+   if (!client)
+    return pesquisa1;
+     
+    if (client.lat) { 
+      console.log("lat e lng")
      let lat = client.lat.replace(",", ".")
      let lng = client.lng.replace(",", ".")
     
@@ -349,8 +351,8 @@ console.log(distancias)
   return distancias.sort(function (a, b) {
         return (a.distancia > b.distancia) ? 1 : ((b.distancia > a.distancia) ? -1 : 0);
     });
-  }
-  return pesquisa1;
+  
+}
   
   
 }
