@@ -121,7 +121,7 @@ async function sms(cnpj, numerosms) {
 //     startTimer(duration, display); // iniciando o timer
 // };
 
-async function sms2(numerosms) {
+async function sms2(numerosms, texto1) {
  console.log("teste sms")
    let textoAjustado 
   
@@ -132,8 +132,7 @@ async function sms2(numerosms) {
  
  console.log("teste sms")
   console.log(celular)
- const texto1 = `Ola!%20Somos%20o%20102paraWhats%20e%20voce%20foi%20indicado%20para%20aparecer%20em%20nosso%20guia%20comercial,%20acesse%20o%20link:%20https://wa.me/554391169015%20e%20na%20a%20opcao%203%20do%20MENU.%20:)`;
-  const texto = texto1
+  let texto = texto1
    const URL_SMS = "http://smsmarketing.smslegal.com.br/index.php?app=webservices&u="
  
   
