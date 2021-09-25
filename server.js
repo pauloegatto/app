@@ -2,6 +2,8 @@ const express = require("express");
 const app = express();
 
 const axios = require("axios");
+const dotenv = require('dotenv');
+dotenv.config();
 
 const {
   show,
@@ -23,6 +25,10 @@ const { viacep, cnpjCpf, TestaCPF, sms, sms2, calcGeo, geolocation } = require("
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+app.use(express.static("public"));
+
+
+app.get("/", (req, res) => res.sendFile(__dirname, "/public/index.html"));
 
 app.post("/102paraWhats", async (request, response) => {
   const { queryResult, session } = request.body;
