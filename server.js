@@ -3,7 +3,6 @@ const app = express();
 
 const axios = require("axios");
 
-
 const {
   show,
   create,
@@ -264,7 +263,7 @@ app.post("/102paraWhats", async (request, response) => {
           localidade: `${client.localidade.toUpperCase()}`,
           apoiolocal: `${apoiolocal}`,
           cidadeuf: `${cidadeuf}`,
-          mensagem: `*Agora já está tudo certo para fazer suas pesquisas* 😁\n\n*${client.nome}, digite o que você deseja pesquisar em ${cidadeuf}?* 🔎`
+          mensagem: `Agora já está tudo certo para fazer suas pesquisas 😁\n\n*${client.nome}, digite o que você deseja pesquisar em ${cidadeuf}?* 🔎`
         }
       }
     });
@@ -322,7 +321,7 @@ app.post("/102paraWhats", async (request, response) => {
       followupEventInput: {
         name: "menu",
         languageCode: "pt-BR",
-        parameters: { nome: `Seu cadastro foi *EXCLUIDO* com sucesso!\n*Visitante*`}
+        parameters: { nome: `Seu cadastro foi EXCLUIDO com sucesso!\nVisitante`}
       }
     });
   }
@@ -351,7 +350,7 @@ app.post("/102paraWhats", async (request, response) => {
       followupEventInput: {
         name: "menu",
         languageCode: "pt-BR",
-        parameters: { nome: `${client.nome}, seu telefone foi alterado para *${parameters.telefone}* com sucesso`, usuario: "Acessar meu cadastro" }
+        parameters: { nome: `${client.nome}, seu telefone foi alterado para ${parameters.telefone} com sucesso`, usuario: "Acessar meu cadastro" }
       }
     });
   }
@@ -389,7 +388,7 @@ app.post("/102paraWhats", async (request, response) => {
       followupEventInput: {
         name: "menu",
         languageCode: "pt-BR",
-        parameters: { nome: `Seu Nº foi alterado para *${parameters.numero}* com sucesso ${client.nome}`, usuario: "Acessar meu cadastro" }
+        parameters: { nome: `Seu Nº foi alterado para ${parameters.numero} com sucesso ${client.nome}`, usuario: "Acessar meu cadastro" }
       }
     });
   }
@@ -646,7 +645,16 @@ app.post("/102paraWhats", async (request, response) => {
       }
     });
   }
-
+ if (queryResult.intent.displayName === "menu5") {
+  
+    return response.json({
+      followupEventInput: {
+        name: "indica",
+        languageCode: "pt-BR"
+    
+      }
+    });
+  }
   if (queryResult.intent.displayName === "menu - sair") {
     return response.json({
       followupEventInput: {
@@ -787,11 +795,11 @@ Obrigado por utilizar *102paraWhats®* 🙏`
     
     console.log("teste CEP")
     console.log("teste resultas");
-    let texto = `*${resultas.length}* resultado (s) encontrados para *${pesquisado.toUpperCase()}* em *${localidade.toUpperCase()}*.`;
+   // let texto = `*${resultas.length}* resultado (s) encontrados para *${pesquisado.toUpperCase()}* em *${localidade.toUpperCase()}*.`;
     let text = "";
     let numero = "0";
-    let rodape = `~${pesquisado.toUpperCase()}~ não foi encontrado em nossa base de dados 😞\nNão se preocupe, expandimos a pesquisa para *todos os resultados em ${localidade.toUpperCase()}.*\nEsperamos que possa encontrar o que deseja. 😊`;
-    console.log(pesquisado);
+    let texto = `🔴 ~${pesquisado.toUpperCase()}~ não foi encontrado em nossa base de dados para *${localidade.toUpperCase()}*.\nSeja o primeiro a anunciar seu serviço ou empresa por aqui ou tambem pode nos indicar para alguém que precise aparecer😊`;
+    let rodape = "";
 
     console.log("teste resultas");
     console.log(resultas);
@@ -808,7 +816,6 @@ Obrigado por utilizar *102paraWhats®* 🙏`
        
   
       
-      texto =   `~${pesquisado.toUpperCase()}~ não foi encontrado em nossa base de dados 😞\nMas não se preocupe, expandimos a pesquisa para *todos os resultados em ${localidade.toUpperCase()}.*\nEsperamos que possa encontrar o que deseja. 😊`;
         
         
       let text = "";
@@ -816,6 +823,8 @@ Obrigado por utilizar *102paraWhats®* 🙏`
       console.log(resultas);
 
       resultas.forEach((search, index) => {
+        texto =   `🟡 ~${pesquisado.toUpperCase()}~ não foi encontrado em nossa base de dados.\nMas não se preocupe, expandimos a pesquisa para *todos os resultados em ${localidade.toUpperCase()}.*\nEsperamos que possa encontrar o que deseja. 😊`;
+
         text += `\n\n*${index+1} - ${search.nomeFantasia.toUpperCase()}*\n*Whats:* https://wa.me/55${search.whats
           .match(/\d+/g)
           .join("")}\n*Atividade:* ${search.atividade.toLowerCase()}`;
@@ -918,7 +927,7 @@ Obrigado por utilizar *102paraWhats®* 🙏`
         name: "resposta",
         languageCode: "pt-BR",
         parameters: {
-          mensagem: `Exibindo *${numero}* de ${texto}\n${text}`,
+          mensagem: `🟢 Exibindo *${numero}* de ${texto}\n${text}`,
           atividade: `${pesquisado}`,
           rodape: `${rodape}`,
           localidade: `${localidade}`
@@ -985,7 +994,7 @@ Obrigado por utilizar *102paraWhats®* 🙏`
     if (numero === "5") {
       const resultas = await pesquisa(queryResult.parameters, localidade, session);
 
-      const texto = `Exibindo *todos os ${resultas.length}* resultados encontrados para *${pesquisado.toUpperCase()}* em *${localidade.toUpperCase()}*.`;
+      const texto = `🟢 Exibindo *todos os ${resultas.length}* resultados encontrados para *${pesquisado.toUpperCase()}* em *${localidade.toUpperCase()}*.`;
       let text = "";
 
       console.log(resultas);
@@ -1364,7 +1373,7 @@ console.log(pesquisado)
        if (numero === "5") {
       const resultas = await pesquisa(queryResult.parameters, localidade, session);
 
-      const texto = `Exibindo *todos os ${resultas.length}* resultados encontrados para *${pesquisado.toUpperCase()}* em *${localidade.toUpperCase()}*.`;
+      const texto = `🟢 Exibindo *todos os ${resultas.length}* resultados encontrados para *${pesquisado.toUpperCase()}* em *${localidade.toUpperCase()}*.`;
       let text = "";
 
       console.log(resultas);
@@ -1483,7 +1492,7 @@ console.log(pesquisado)
 
   
 });
-      const texto = `~${pesquisado.toUpperCase()}~ não foi encontrado em nossa base de dados 😞\nMas não se preocupe, expandimos a pesquisa para *todos os resultados em ${localidade.toUpperCase()}.*\nEsperamos que possa encontrar o que deseja. 😊`;
+      const texto = `🟡 ~${pesquisado.toUpperCase()}~ não foi encontrado em nossa base de dados.\nMas não se preocupe, expandimos a pesquisa para *todos os resultados em ${localidade.toUpperCase()}.*\nEsperamos que possa encontrar o que deseja. 😊`;
       let text = "";
 
       console.log(resultas);
@@ -2104,11 +2113,13 @@ E-mail: ${cnpj.email}
       
       console.log(session)
       const resultas = await pesquisa(queryResult.parameters, localidade, session);
-    let texto = `*${resultas.length}* resultado (s) encontrados para *${pesquisado.toUpperCase()}* em *${localidade.toUpperCase()}*.`;
+   // let texto = `*${resultas.length}* resultado (s) encontrados para *${pesquisado.toUpperCase()}* em *${localidade.toUpperCase()}*.`;
     let text = "";
     let numero = "0";
-    let rodape = `~${pesquisado.toUpperCase()}~ não foi encontrado em nossa base de dados 😞\nNão se preocupe teste, expandimos a pesquisa para *todos os resultados em ${localidade.toUpperCase()}.*\nEsperamos que possa encontrar o que deseja. 😊`;
-    console.log(pesquisado);
+  //  let rodape = `🟡 ~${pesquisado.toUpperCase()}~ não foi encontrado em nossa base de dados.\nNão se preocupe teste, expandimos a pesquisa para *todos os resultados em ${localidade.toUpperCase()}.*\nEsperamos que possa encontrar o que deseja. 😊`;
+    let texto = `🔴 ~${pesquisado.toUpperCase()}~ não foi encontrado em nossa base de dados para *${localidade.toUpperCase()}*.\nSeja o primeiro a anunciar seu serviço ou empresa por aqui ou tambem pode nos indicar para alguém que precise aparecer😊`;
+   let rodape = "";
+      console.log(pesquisado);
 
     console.log("teste resultas");
     console.log(resultas);
@@ -2129,7 +2140,6 @@ console.log(resultas)
 });
      console.log("result abc") 
       console.log(resultas) 
-      texto =   `~${pesquisado.toUpperCase()}~ não foi encontrado em nossa base de dados 😞\nMas não se preocupe, expandimos a pesquisa para *todos os resultados em ${localidade.toUpperCase()}.*\nEsperamos que possa encontrar o que deseja. 😊`;
         
         
         
@@ -2138,6 +2148,8 @@ console.log(resultas)
       console.log(resultas);
 
       resultas.forEach((search, index) => {
+      texto =   `🟡 ~${pesquisado.toUpperCase()}~ não foi encontrado em nossa base de dados.\nMas não se preocupe, expandimos a pesquisa para *todos os resultados em ${localidade.toUpperCase()}.*\nEsperamos que possa encontrar o que deseja. 😊`;
+
         text += `\n\n*${index+1} - ${search.nomeFantasia.toUpperCase()}*\n*Whats:* https://wa.me/55${search.whats
           .match(/\d+/g)
           .join("")}\n*Atividade:* ${search.atividade.toLowerCase()}`;
@@ -2162,7 +2174,7 @@ console.log(resultas)
         if (index === 0) {
         texto = `*${resultas.length}* resultado (s) encontrados para *${pesquisado.toUpperCase()}* em *${localidade.toUpperCase()}*.`;
         numero = "1";
-          rodape = "🔢 Digite o *numero* do resultado de sua pesquisa para mais detalhes 🗃️"
+          rodape = "\n🔢 *Mais detalhes...*"
         text += `\n1️⃣ *${
           resultas[0].nomeFantasia.toUpperCase()
         }* \n*Whats:* https://wa.me/55${resultas[0].whats.match(/\d+/g).join("")}\n${resultas[0].distancia.toFixed(1)} Km`;
@@ -2172,7 +2184,7 @@ console.log(resultas)
       if (index === 1) {
         texto = `*${resultas.length}* resultado (s) encontrados para *${pesquisado.toUpperCase()}* em *${localidade.toUpperCase()}*.`;
         numero = "2";
-          rodape = "🔢 Digite o *numero* do resultado de sua pesquisa para mais detalhes 🗃️"
+          rodape = "\n🔢 *Mais detalhes...*"
         text = `\n1️⃣ *${
           resultas[0].nomeFantasia.toUpperCase()
         }* \n*Whats:* https://wa.me/55${resultas[0].whats.match(/\d+/g).join("")}\n${resultas[0].distancia.toFixed(1)} Km
@@ -2185,7 +2197,7 @@ console.log(resultas)
       if (index === 2) {
         texto = `*${resultas.length}* resultado (s) encontrados para *${pesquisado.toUpperCase()}* em *${localidade.toUpperCase()}*.`;
         numero = "3";
-          rodape = "🔢 Digite o *numero* do resultado de sua pesquisa para mais detalhes 🗃️"
+          rodape = "\n🔢 *Mais detalhes...*"
         text = `\n1️⃣ *${
           resultas[0].nomeFantasia.toUpperCase()
         }* \n*Whats:* https://wa.me/55${resultas[0].whats.match(/\d+/g).join("")}\n${resultas[1].distancia.toFixed(1)} Km 
@@ -2203,7 +2215,7 @@ console.log(resultas)
       if (index === 3) {
         texto = `*${resultas.length}* resultado (s) encontrados para *${pesquisado.toUpperCase()}* em *${localidade.toUpperCase()}*.`;
         numero = "4";
-         rodape = "🔢 Digite o *numero* do resultado de sua pesquisa para mais detalhes 🗃️"
+         rodape = "\n🔢 *Mais detalhes...*"
         text = `\n1️⃣ *Nome:* ${
           resultas[0].nomeFantasia.toUpperCase()
         } \n*Whats:* https://wa.me/55${resultas[0].whats.match(/\d+/g).join("")}\n${resultas[0].distancia.toFixed(1)} Km
@@ -2226,7 +2238,7 @@ console.log(resultas)
       if (index === 4) {
         texto = `*${resultas.length}* resultado (s) encontrados para *${pesquisado.toUpperCase()}* em *${localidade.toUpperCase()}*.`;
         numero = "4";
-      rodape = "🔢 Digite o *numero* do resultado de sua pesquisa para mais detalhes 🗃️"
+      rodape = "🔢 *Mais detalhes...*"
         text = `\n1️⃣ *${resultas[0].nomeFantasia.toUpperCase()}*\n*Whats:* https://wa.me/55${resultas[0].whats.match(/\d+/g).join("")}\n${resultas[0].distancia.toFixed(1)} Km
                 \n2️⃣ *${resultas[1].nomeFantasia.toUpperCase()}*\n*Whats:* https://wa.me/55${resultas[1].whats.match(/\d+/g).join("")}\n${resultas[1].distancia.toFixed(1)} Km 
                 \n3️⃣ *${resultas[2].nomeFantasia.toUpperCase()}*\n*Whats:* https://wa.me/55${resultas[2].whats.match(/\d+/g).join("")}\n${resultas[2].distancia.toFixed(1)} Km
@@ -2240,7 +2252,7 @@ console.log(resultas)
         name: "resposta",
         languageCode: "pt-BR",
         parameters: {
-          mensagem: `Exibindo *${numero}* de ${texto}\n${text}`,
+          mensagem: `🟢 Exibindo *${numero}* de ${texto}\n${text}`,
           atividade: `${pesquisado}`,
           rodape: `${rodape}`,
           localidade: `${localidade}`
@@ -2257,7 +2269,7 @@ console.log(resultas)
   
   
   if (queryResult.intent.displayName === "menucadastrado") {
-
+console.log("menu cadastrado")
   const localidade = queryResult.parameters.localidade;
    const menu = String(queryResult.parameters.texto).toUpperCase()
     const numero = String(queryResult.parameters.texto);
@@ -2312,6 +2324,16 @@ console.log(resultas)
         parameters: {
           mensagem: "Quer falar com nosso time, segue nossos contatos:"
         }
+      }
+    });
+    } 
+     if (numero === "5") { 
+       console.log("menu cadastrado numero 5")
+       return response.json({
+      followupEventInput: {
+        name: "indica",
+        languageCode: "pt-BR",
+      
       }
     });
     } 
@@ -2444,11 +2466,11 @@ await axios.patch(`${process.env.URL_SHEET3}/cnpj/${cnpjCpf}`,{
      const localidade = client.localidade;
      console.log(localidade)
      const resultas = await pesquisa(queryResult.parameters, localidade, session);
-    let texto = `*${resultas.length}* resultado (s) encontrados para *${pesquisado.toUpperCase()}* em *${localidade.toUpperCase()}*.`;
+   // let texto = `*${resultas.length}* resultado (s) encontrados para *${pesquisado.toUpperCase()}* em *${localidade.toUpperCase()}*.`;
     let text = "";
     let numero = "0";
-    let rodape = `~${pesquisado.toUpperCase()}~ não foi encontrado em nossa base de dados 😞\nNão se preocupe teste, expandimos a pesquisa para *todos os resultados em ${localidade.toUpperCase()}.*\nEsperamos que possa encontrar o que deseja. 😊`;
-    console.log(pesquisado);
+    let texto = `🔴 ~${pesquisado.toUpperCase()}~ não foi encontrado em nossa base de dados para *${localidade.toUpperCase()}*.\nSeja o primeiro a anunciar seu serviço ou empresa por aqui ou tambem pode nos indicar para alguém que precise aparecer😊`;
+     let rodape = "";
 
     console.log("teste resultas");
     console.log(resultas);
@@ -2469,7 +2491,6 @@ console.log(resultas)
 });
      console.log("result abc") 
       console.log(resultas) 
-      texto =   `~${pesquisado.toUpperCase()}~ não foi encontrado em nossa base de dados 😞\nMas não se preocupe, expandimos a pesquisa para *todos os resultados em ${localidade.toUpperCase()}.*\nEsperamos que possa encontrar o que deseja. 😊`;
         
         
         
@@ -2478,6 +2499,8 @@ console.log(resultas)
       console.log(resultas);
 
       resultas.forEach((search, index) => {
+        texto =   `🟡 ~${pesquisado.toUpperCase()}~ não foi encontrado em nossa base de dados.\nMas não se preocupe, expandimos a pesquisa para *todos os resultados em ${localidade.toUpperCase()}.*\nEsperamos que possa encontrar o que deseja. 😊`;
+
         text += `\n\n*${index+1} - ${search.nomeFantasia.toUpperCase()}*\n*Whats:* https://wa.me/55${search.whats
           .match(/\d+/g)
           .join("")}\n*Atividade:* ${search.atividade.toLowerCase()}`;
@@ -2580,7 +2603,7 @@ console.log(resultas)
         name: "resposta",
         languageCode: "pt-BR",
         parameters: {
-          mensagem: `Exibindo *${numero}* de ${texto}\n${text}`,
+          mensagem: `🟢 Exibindo *${numero}* de ${texto}\n${text}`,
           atividade: `${pesquisado}`,
           rodape: `${rodape}`,
           localidade: `${localidade}`
@@ -2602,8 +2625,136 @@ console.log(resultas)
    
    }
   
+    if (queryResult.intent.displayName === "indica") {
+      const numero = queryResult.parameters.texto
+      if (numero === "1") {      
+      return response.json({
+      followupEventInput: {
+        name: "indicador",
+        languageCode: "pt-BR",
+        parameters: {
+          mensagem: `*Digite o telefone de alguém que você não encontrou por aqui, para que das próximas vezes esteja disponivel para pesquisas.*\nExemplo: 000 0000-0000`, numero: numero
+        }
+      }
+    });
+    }
+     if (numero === "2") {      
+      return response.json({
+      followupEventInput: {
+        name: "indicador",
+        languageCode: "pt-BR",
+        parameters: {
+          mensagem: `*Digite o telefone de alguém que precisa encontrar um Profissional ou Empresa.*\nExemplo: 000 0000-0000`, numero: numero
+        }
+      }
+    });
+    }
+  if (numero === "M") {      
+    const client = await show(session,);
+if (!client)
+        return response.json({
+      followupEventInput: {
+        name: "menu",
+        languageCode: "pt-BR"
+      
+      }
+    });
+        return response.json({
+      followupEventInput: {
+        name: "menucadastrado",
+        languageCode: "pt-BR",
+        parameters: {
+          nome: `${client.nome}`
+        }
+      }
+    });
+    }  
+  if (numero === "0") {      
+      return response.json({
+      followupEventInput: {
+        name: "contato",
+        languageCode: "pt-BR",
+        parameters: {
+          mensagem: `Espero ter ajudado 😊
+
+Obrigado por utilizar *102paraWhats®* 🙏`
+        }
+      }
+    });
+    }
+
+   }
+    
+   if (queryResult.intent.displayName === "indicador") {
+    
+      const telefone = queryResult.parameters.telefone
+     const cell = await arrumaCelular2(telefone);
+    
+     
+     const celular = await arrumaCelular3(cell.celular);
+    const numerosms = celular.celular
+    
+   
+     
+     const numero = queryResult.parameters.numero
+      const client = await show(session,);
+      if (numero === "1") {  
+       const texto1 = `Ola!%20Somos%20o%20102paraWhats%20e%20voce%20foi%20indicado%20para%20aparecer%20em%20nosso%20guia%20comercial,%20acesse%20o%20link:%20https://wa.me/554391169015%20e%20na%20a%20opcao%203%20do%20MENU.%20:%20)`;
+        sms2 (numerosms, texto1)
+        
+      if (!client)
+        return response.json({
+      followupEventInput: {
+        name: "menu",
+        languageCode: "pt-BR",
+        parameters: {
+          nome: `Obrigado, sua contribuição é muito importante para nós.* 🙏\n\n*Visitante`
+        }
+      
+      }
+    });
+        return response.json({
+      followupEventInput: {
+        name: "menucadastrado",
+        languageCode: "pt-BR",
+        parameters: {
+          nome: `${client.nome}`,
+           mensagem: `Obrigado, sua contribuição é muito importante para nós. 🙏\n\n🔢 *${client.nome}`
+        }
+      }
+    });
+    }
+     if (numero === "2") { 
+        const texto1 = `Ola!%20Somos%20o%20102paraWhats%20e%20podemos%20te%20ajudar%20a%20procurar%20o%20whatsapp%20de%20uma%20empresa%20ou%20profissional.%20Acesse%20o%20link:%20https://wa.me/554391169015.%20:%20)`;
+         sms2 (numerosms, texto1)
+  if (!client)
+        return response.json({
+      followupEventInput: {
+        name: "menu",
+        languageCode: "pt-BR",
+        parameters: {
+          nome: `Obrigado, sua contribuição é muito importante para nós.* 🙏\n\n*Visitante`
+        }
+      
+      }
+    });
+        return response.json({
+      followupEventInput: {
+        name: "menucadastrado",
+        languageCode: "pt-BR",
+        parameters: {
+          nome: `${client.nome}`,
+          mensagem: `Obrigado, sua contribuição é muito importante para nós. 🙏\n\n🔢 *${client.nome}`
+             
+        }
+      }
+    });
+    }
   
-  
+    }
+
+   
+    
    if (queryResult.intent.displayName === "teste") {
    //console.log(queryResult)
 //   //const texto = String(queryResult.parameters.teste).match(/\d+/g).join('');
@@ -2780,8 +2931,6 @@ console.log(resultas)
   
   
   
-	
-	
   
   
   
