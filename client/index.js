@@ -1,7 +1,13 @@
 
 const axios = require("axios");
 const { viacep, cnpjCpf, geolocation, sms, calcGeo } = require("../functions");
-
+const dayjs = require('dayjs')
+const utc = require('dayjs/plugin/utc')
+const timezone = require('dayjs/plugin/timezone')
+const duration = require('dayjs/plugin/duration')
+dayjs.extend(duration)
+dayjs.extend(utc)
+dayjs.extend(timezone)
 async function show(query) {
   const data = query.split('/');
   const numero = data[data.length - 1]   
@@ -21,6 +27,33 @@ async function show(query) {
   return result.data[0];
 }
 
+async function showavalia(session,cnpjcpf) {
+ console.log("showavalia")
+  const data = session.split('/');
+  const numero = data[data.length - 1]
+  const idUser = String(numero).match(/\d+/g).join('');
+  const empresa =`https://sheetdb.io/api/v1/g7whiijq4yb15` 
+   const result = await axios.get(`${empresa}/search`, {
+    params: {
+      id: idUser,
+      cnpjcpf: cnpjcpf
+    }   
+  });
+
+  return result.data[0];
+}
+async function showavalia1(cnpjcpf) {
+ console.log("showavalia1")
+  
+  const empresa =`https://sheetdb.io/api/v1/g7whiijq4yb15` 
+   const result = await axios.get(`${empresa}/search`, {
+    params: {     
+      cnpjcpf: cnpjcpf
+    }   
+  });
+
+  return result.data[0];
+}
 async function createempresa(parameters, session, textoCnpj) {
   console.log(parameters)
   const empresa = await cnpjCpf(textoCnpj);
@@ -48,6 +81,11 @@ async function createempresa(parameters, session, textoCnpj) {
   const geo = await geolocation(numero1, rua1, cidade1 , uf1)
   console.log("teste geo create")
   
+   const celular1 = celular.celular;
+      const idUser1 = String(celular1)
+        .match(/\d+/g)
+        .join("");
+      const whats = `https://wa.me/55${idUser1}`;
   await axios.post(
     process.env.URL_SHEET3,
     {
@@ -56,6 +94,7 @@ async function createempresa(parameters, session, textoCnpj) {
       razaoSocial:  empresa.nome,
       cnpj:  cnpj,
       whats:  celular.celular,
+      whatslink: whats,
       telefone:  empresa.telefone,
       cep:  empresa.cep,
       localidade:  empresa.municipio,
@@ -141,6 +180,26 @@ async function create(parameters, session) {
   const numero = data[data.length - 1]
   const idUser = String(numero).match(/\d+/g).join('');
   const primeironome = parameters.nome.split(' ')[0];
+  
+  // await axios.patch(`${process.env.URL_SHEET}/id/${idUser}`,{
+  //       "data": {     
+  //     nome: primeironome,
+  //     nomecompleto: parameters.nome.toUpperCase(),
+  //     telefone: parameters.telefone.toUpperCase(),
+  //     cep: parameters.cep,
+  //     localidade: localidade,
+  //     uf: uf,
+  //     rua: rua,
+  //     numero: parameters.numero,
+  //     bairro: bairro,
+  //     termo: parameters.termo,
+  //     lat: geo.lat,
+  //     lng: geo.lng
+  //       }
+  //   }).then( response => {
+  //       console.log(response.data);
+  //   });
+  
   await axios.post(
     process.env.URL_SHEET,
     {
@@ -154,7 +213,7 @@ async function create(parameters, session) {
       rua: rua,
       numero: parameters.numero,
       bairro: bairro,
-      apoiolocal: parameters.apoiolocal,
+      termo: parameters.termo,
       lat: geo.lat,
       lng: geo.lng
     },
@@ -166,6 +225,89 @@ async function create(parameters, session) {
     }
   );
   return { parameters, rua, bairro, localidade, uf };
+}
+
+async function create1(session) {
+  console.log("função create1")
+  const data = session.split('/');
+  const numero = data[data.length - 1]
+  const idUser = String(numero).match(/\d+/g).join('');
+ 
+  const primeiroacesso = dayjs.tz(new Date(), "America/Sao_Paulo").format('DD:MM:YYYY HH:mm:ss')
+  console.log(primeiroacesso)
+  
+  await axios.post(
+    process.env.URL_SHEET4,
+    {
+      id: idUser,
+      primeiroacesso: primeiroacesso,
+      acessos: "1"
+    }
+  );
+  return ;
+}
+async function create2(session, acessos) {
+  console.log("função create2")
+  const data = session.split('/');
+  const numero = data[data.length - 1]
+  const idUser = String(numero).match(/\d+/g).join('');
+ 
+  const ultimoacesso = dayjs.tz(new Date(), "America/Sao_Paulo").format('DD:MM:YYYY HH:mm:ss')
+const qte = Number(acessos.acessos)
+  console.log("quantidade de acessos")
+console.log(qte)
+   console.log("acessos")
+ console.log(acessos)
+    console.log("nome 2")
+    const agora = dayjs().format()
+  const depois = dayjs(agora).add(30, "s").format()
+if(!acessos.userhora){
+//   const dataDia = (ultimoacesso).match(/\d+/gi);
+//   const horaLocal = dayjs.duration({
+//     days: dataDia[0],
+//     months: dataDia[1],
+//     years: dataDia[2],
+//     hours: dataDia[3],
+//     minutes: dataDia[4],
+//     seconds: dataDia[5]
+//   }).format()
+
+// const userHora = dayjs(horaLocal).add(1, "m").format()
+
+   const result =  await axios.patch(`${process.env.URL_SHEET4}/id/${idUser}`,{
+        "data": {
+          ultimoacesso: ultimoacesso,
+          acessos: Number(qte)+1,
+          userhora: depois
+          
+        }
+    })
+  return acessos;
+}
+ if(dayjs(agora).isAfter(acessos.userhora)){
+
+ 
+   const result =  await axios.patch(`${process.env.URL_SHEET4}/id/${idUser}`,{
+        "data": {
+          ultimoacesso: ultimoacesso,
+          acessos: Number(qte)+1,
+          userhora: depois
+          
+        }
+    })
+  return acessos;
+}
+  
+  const result =  await axios.patch(`${process.env.URL_SHEET4}/id/${idUser}`,{
+        "data": {
+          ultimoacesso: ultimoacesso,
+          acessos: Number(qte)+1,
+          
+          
+        }
+    })
+
+  return acessos;
 }
 
 
@@ -288,7 +430,8 @@ async function pesquisa (parameters, localidade, session ) {
  
   const atividade = String(parameters.atividade).normalize("NFD").replace(/[^a-zA-Zs]/g, "").toUpperCase();
   console.log("pesquisa")
-  console.log(atividade)
+  const telefone = parameters.atividade
+  console.log(telefone)
   const result = await axios.get(`${process.env.URL_SHEET3}`,{
     auth: {
       username: process.env.LOGIN_SHEET3,
@@ -296,6 +439,44 @@ async function pesquisa (parameters, localidade, session ) {
     }
   });
 console.log("pesquisa 1")
+  
+  if(Number(telefone)){
+  console.log("numero")
+    
+    console.log(telefone)
+ const cell = await arrumaCelular2(telefone);  
+      console.log(cell)
+const celular = await arrumaCelular3(cell.celular);
+    console.log(celular)
+const numerosms = celular.celular
+console.log(numerosms)
+const pesquisa1 = result.data.filter(search => search.localidade === localidade.toUpperCase()).filter(search => search.whats === numerosms);
+ if (!client)
+    return pesquisa1;
+     
+    if (client.lat) { 
+      console.log("lat e lng")
+     let lat = client.lat.replace(",", ".")
+     let lng = client.lng.replace(",", ".")
+    
+
+
+    const distancias = pesquisa1.map((result) => {
+        return {
+            ...result,
+            distancia: calcGeo(Number(lat), Number(lng), Number(result.lat), Number(result.lng))
+        }
+    });
+
+console.log(distancias)
+
+   
+  return distancias.sort(function (a, b) {
+        return (a.distancia > b.distancia) ? 1 : ((b.distancia > a.distancia) ? -1 : 0);
+    });
+}
+  }
+  
 const pesquisa1 = result.data.filter(search => search.localidade === localidade.toUpperCase()).filter(search => search.atividade === atividade);
 //console.log(pesquisa1)
 console.log("pesquisa 2")
@@ -310,12 +491,16 @@ const pesquisa4 = result.data.filter(search => search.localidade === localidade.
 console.log("pesquisa 5")
 const pesquisa5 = result.data.filter(search => search.localidade === localidade.toUpperCase()).filter(search => search.subbusca3 === atividade);
 //console.log(pesquisa5)
-console.log("pesquisa 1 e 2")
+  const estado = "PARANA"
+  const pesquisa6 = result.data.filter(search => search.localidade === estado.toUpperCase()).filter(search => (search.nomeFantasia === atividade)||(search.subbusca1 === atividade));
+
+  console.log("pesquisa 1 e 2")
    Array.prototype.push.apply(pesquisa1, pesquisa2);
    Array.prototype.push.apply(pesquisa1, pesquisa3);
    Array.prototype.push.apply(pesquisa1, pesquisa4);
    Array.prototype.push.apply(pesquisa1, pesquisa5);
-console.log(pesquisa1)
+   Array.prototype.push.apply(pesquisa1, pesquisa6);
+console.log(pesquisa6)
   //const pesquisafinal = pesquisa1.removeIf(Objects::isNull)
   
   //return result.data.filter(search => search.atividade === atividade);
@@ -368,10 +553,15 @@ async function pesquisasimples (parameters, localidade) {
     }
   });
 
-const atividade = "TELEFONE UTEIS"
+
   const pesquisa1 = result.data.filter(search => search.localidade === localidade.toUpperCase());
-  const pesquisa2 = result.data.filter(search => search.atividade === atividade);
+ const estado = "PARANA"
+  const pesquisa2 = result.data.filter(search => search.localidade === estado.toUpperCase());
+
    Array.prototype.push.apply(pesquisa1, pesquisa2);
+        console.log("TELEFONEs UTEIS")
+console.log(pesquisa2)
+
   return pesquisa1;
   
   
@@ -424,6 +614,8 @@ function arrumaCelular2 (telefone) {
         
         return {celular};
     }
+
+
 
 function arrumaCelular3 (telefone) {
    
@@ -526,6 +718,31 @@ console.log("updatepf")
 
   return 
 }
+async function logs(session) {
+   console.log("consulta logs")
+  const data = session.split('/');
+  const numero = data[data.length - 1]    
+  const idUser = String(numero).match(/\d+/g).join('');
+ 
+  const result = await axios.get(`${process.env.URL_SHEET4}/search`, {
+    params: {
+      id: idUser
+    }   
+  });
+   console.log(result.data) 
+    
+  if (!result.data[0]){  
+    console.log("consulta logs não é cliente") 
+    await create1(session)
+    return;  
+     
+}
+     
+    console.log("consulta logs é cliente")
+       const acessos = result.data[0]
+ const resultlogs = await create2(session, acessos) 
+    return resultlogs;
+   
+}
 
-
-module.exports = { show, createpf, create, update, deleteAll, createempresa, showpj , pesquisa, arrumaCelular, arrumaCelular2, arrumaCelular3, pesquisasimples, deleteCpf, updatepfpj};
+module.exports = { show, logs, showavalia, showavalia1, createpf, create, create1, create2, update, deleteAll, createempresa, showpj , pesquisa, arrumaCelular, arrumaCelular2, arrumaCelular3, pesquisasimples, deleteCpf, updatepfpj};
