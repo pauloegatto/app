@@ -745,4 +745,5 @@ async function logs(session) {
    
 }
 
+
 module.exports = { show, logs, showavalia, showavalia1, createpf, create, create1, create2, update, deleteAll, createempresa, showpj , pesquisa, arrumaCelular, arrumaCelular2, arrumaCelular3, pesquisasimples, deleteCpf, updatepfpj};
