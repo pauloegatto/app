@@ -1,13 +1,21 @@
 const express = require("express");
 const app = express();
-
+const dayjs = require('dayjs')
+const utc = require('dayjs/plugin/utc')
+const timezone = require('dayjs/plugin/timezone')
+const duration = require('dayjs/plugin/duration')
+dayjs.extend(utc)
+dayjs.extend(timezone)
+dayjs.extend(duration)
 const axios = require("axios");
-const dotenv = require('dotenv');
-dotenv.config();
-
 const {
   show,
+  logs,
+  showavalia,
+  showavalia1,
   create,
+  create1,
+  create2,
   update,
   deleteAll,
   createempresa,
@@ -23,35 +31,61 @@ const {
 } = require("./client");
 const { viacep, cnpjCpf, TestaCPF, sms, sms2, calcGeo, geolocation } = require("./functions");
 
+
+
+
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(express.static("public"));
-
-
 app.get("/", (req, res) => res.sendFile(__dirname, "/public/index.html"));
+app.get("/contato", (req, res) => res.sendFile(__dirname, "/public/contato.html"));
 
 app.post("/102paraWhats", async (request, response) => {
   const { queryResult, session } = request.body;
+ console.log("logs")
 
+  
+  
+//const resultlogs = await logs(session);
+ const resultlogs = 0;
+  const agora = dayjs().format()  
+
+  
   if (queryResult.intent.displayName === "Default Welcome Intent") {
+console.log("welcome")
+    
+     
+
+    
     const client = await show(session);
 
     if (!client) {
+      console.log("não é cliente")
+      
+     if (resultlogs.userhora){
+        if(dayjs(agora).isAfter(resultlogs.userhora)){
+          return response.json({
+        followupEventInput: { name: "perguntacadastro" }
+      }); 
+        }
+      return response.json({
+        followupEventInput: { name: "menu" }
+      }); 
+       
+     }
+      
+
       return response.json({
         followupEventInput: { name: "perguntacadastro" }
       });
     }
 
-//     return response.json({
-//       followupEventInput: {
-//         name: "menu",
-//         parameters: { nome: `${client.nome}`, usuario: "Acessar meu cadastro" }
-//       }
-//    });
-    
-      
-    const apoiolocal = `${client.apoiolocal.toUpperCase()}*`;
+  
+    const termo = `${client.termo.toUpperCase()}*`;
     const cidadeuf = `${client.localidade}/${client.uf}`
+
+   console.log("é cliente e tem o termo")
     return response.json({
       followupEventInput: {
         name: "menurapido",
@@ -59,11 +93,15 @@ app.post("/102paraWhats", async (request, response) => {
         parameters: {
           nome: `${client.nome}`,
           localidade: `${client.localidade.toUpperCase()}`,
-          apoiolocal: `${apoiolocal}`,
+          termo: `${termo}`,
           cidadeuf: `${cidadeuf}`
         }
       }
     });
+  
+ 
+    
+    
     
     
     
@@ -227,7 +265,7 @@ app.post("/102paraWhats", async (request, response) => {
     \n*Rua:* ${client.rua}, *Nº:* ${client.parameters.numero}
     \n*Bairro:* ${client.bairro}
     \n*Localidade:* ${client.localidade}/${client.uf}
-    \n*Termos de Uso:* ${client.parameters.apoiolocal.toUpperCase()}
+    \n*Termos de Uso:* ${client.parameters.termo.toUpperCase()}
     \n*SIM* ou *NÃO*`
       });
    
@@ -258,7 +296,7 @@ app.post("/102paraWhats", async (request, response) => {
 
   if (queryResult.intent.displayName === "cadastro - yes") {
     const client = await show(session);
-    const apoiolocal = `${client.apoiolocal.toUpperCase()}*`;
+    const termo = `${client.termo.toUpperCase()}*`;
     const cidadeuf = `${client.localidade}/${client.uf}`
     return response.json({
       followupEventInput: {
@@ -267,7 +305,7 @@ app.post("/102paraWhats", async (request, response) => {
         parameters: {
           nome: `${client.nome}`,
           localidade: `${client.localidade.toUpperCase()}`,
-          apoiolocal: `${apoiolocal}`,
+          termo: `${termo}`,
           cidadeuf: `${cidadeuf}`,
           mensagem: `Agora já está tudo certo para fazer suas pesquisas 😁\n\n*${client.nome}, digite o que você deseja pesquisar em ${cidadeuf}?* 🔎`
         }
@@ -294,7 +332,7 @@ app.post("/102paraWhats", async (request, response) => {
     \n2️⃣ *Telefone:* ${client.telefone}
     \n3️⃣ *Endereço:* ${client.rua}\n${client.localidade}/${client.uf}
     \n4️⃣ *N° da rua:* ${client.numero}   
-    \n5️⃣ *Termos de Uso:* ${client.apoiolocal.toUpperCase()}
+    \n5️⃣ *Termos de Uso:* ${client.termo.toUpperCase()}
     \n0️⃣ *Tudo*
     \n#️⃣ *Excluir o meu cadastro*
     \nⓂ️ *Retornar ao Menu*`
@@ -327,7 +365,7 @@ app.post("/102paraWhats", async (request, response) => {
       followupEventInput: {
         name: "menu",
         languageCode: "pt-BR",
-        parameters: { nome: `Seu cadastro foi EXCLUIDO com sucesso!\nVisitante`}
+        parameters: { nome: `Seu cadastro foi EXCLUIDO* com sucesso!\n🔢 *Visitante`}
       }
     });
   }
@@ -361,7 +399,38 @@ app.post("/102paraWhats", async (request, response) => {
     });
   }
     
+  if (queryResult.intent.displayName === "alteracadastropesquisar") {
+      const client = await show(session,);
+  
+        const termo = `${client.termo.toUpperCase()}*`;
+    const cidadeuf = `${client.localidade}/${client.uf}`
+    return response.json({
+      followupEventInput: {
+        name: "menurapido",
+        languageCode: "pt-BR",
+        parameters: {
+          nome: `${client.nome}`,
+          localidade: `${client.localidade.toUpperCase()}`,
+          termo: `${termo}`,
+          cidadeuf: `${cidadeuf}`
+        }
+      }
+    }); 
+  }
+    
+  if (queryResult.intent.displayName === "alteracadastrosair") {
+        return response.json({
+      followupEventInput: {
+        name: "contato",
+        languageCode: "pt-BR",
+        parameters: {
+          mensagem: `Espero ter ajudado 😊
 
+Obrigado por utilizar *102paraWhats®* 🙏`
+        }
+      }
+    });
+  }
   if (queryResult.intent.displayName === "alteracadastrocep") {
     const client = await show(session);
     const andress = await viacep(queryResult.parameters.cep);
@@ -401,7 +470,7 @@ app.post("/102paraWhats", async (request, response) => {
     
 
 
-  if (queryResult.intent.displayName === "alteracadastroapoiolocal") {
+  if (queryResult.intent.displayName === "alteracadastrotermo") {
     const client = await show(session);   
     const parameters = await update(queryResult.parameters, session);
    
@@ -409,7 +478,7 @@ app.post("/102paraWhats", async (request, response) => {
       followupEventInput: {
         name: "menu",
         languageCode: "pt-BR",
-        parameters: { nome: `Apoio local alterado para: *${queryResult.parameters.apoiolocal.toUpperCase()}* com sucesso!\n${client.nome}`, usuario: "Acessar meu cadastro" }
+        parameters: { nome: `Apoio local alterado para: *${queryResult.parameters.termo.toUpperCase()}* com sucesso!\n${client.nome}`, usuario: "Acessar meu cadastro" }
       }
     });
   }
@@ -434,7 +503,7 @@ app.post("/102paraWhats", async (request, response) => {
     \n*Cep:* ${parameters.cep}
     \n*Rua:* ${andress.logradouro}, *Nº:* ${parameters.numero}
     \n*Localidade:* ${andress.localidade}/${andress.uf}
-    \n*Termos de Uso:* ${parameters.apoiolocal.toUpperCase()}
+    \n*Termos de Uso:* ${parameters.termo.toUpperCase()}
     \n*SIM* ou *NÃO*`
       return response.json({
           followupEventInput: {
@@ -451,7 +520,7 @@ app.post("/102paraWhats", async (request, response) => {
     \n*Telefone:* ${celular.celular}
     \n*Cep: ${parameters.cep}
     \n*Localidade:* ${andress.localidade}/${andress.uf}
-    \n*Termos de Uso:* *${parameters.apoiolocal.toUpperCase()}*
+    \n*Termos de Uso:* *${parameters.termo.toUpperCase()}*
     \n*SIM* ou NÃO*?`
        return response.json({
           followupEventInput: {
@@ -477,22 +546,17 @@ app.post("/102paraWhats", async (request, response) => {
     });
   }
   
-     if (queryResult.intent.displayName === "alteracadastro - cancel") {
+     if (queryResult.intent.displayName === "alteracadastromenu") {
     const client = await show(session);
-    const apoiolocal = `${client.apoiolocal.toUpperCase()}*`;
-    const cidadeuf = `${client.localidade}/${client.uf}`
-    return response.json({
+ return response.json({
       followupEventInput: {
-        name: "menurapido",
+        name: "menucadastrado",
         languageCode: "pt-BR",
         parameters: {
-          nome: `${client.nome}`,
-          localidade: `${client.localidade.toUpperCase()}`,
-          apoiolocal: `${apoiolocal}`,
-          cidadeuf: `${cidadeuf}`
+          nome: `${client.nome}`
         }
       }
-    });   
+    });  
   }
   
 
@@ -510,12 +574,22 @@ app.post("/102paraWhats", async (request, response) => {
             }
           }
         });
+      // if (!client.termo)
+      //   return response.json({
+      //     followupEventInput: {
+      //       name: "cadastro",
+      //       languageCode: "pt-BR",
+      //       parameters: {
+      //         telefone: `${celular.celular}`
+      //       }
+      //     }
+      //   });
        const texto = await`🔢 Digite a opção que deseja *alterar*: 
     \n1️⃣ *Nome:* ${client.nomecompleto.toUpperCase()}
     \n2️⃣ *Telefone:* ${client.telefone}
     \n3️⃣ *Endereço:* ${client.rua}\n${client.localidade}/${client.uf}
     \n4️⃣ *N° da rua:* ${client.numero}   
-    \n5️⃣ *Termos de Uso:* ${client.apoiolocal.toUpperCase()}
+    \n5️⃣ *Termos de Uso:* ${client.termo.toUpperCase()}
     \n0️⃣ *Tudo*
     \n#️⃣ *Excluir o meu cadastro*
     \nⓂ️ *Retornar ao Menu*`
@@ -543,10 +617,9 @@ app.post("/102paraWhats", async (request, response) => {
     \n2️⃣ *Telefone:* ${client.telefone}
     \n3️⃣ *Endereço:* ${client.rua}\n${client.localidade}/${client.uf}
     \n4️⃣ *N° da rua:* ${client.numero}   
-    \n5️⃣ *Termos de Uso:* ${client.apoiolocal.toUpperCase()}
-    \n0️⃣ *Tudo*
-    \n#️⃣ *Excluir o meu cadastro*
-    \nⓂ️ *Retornar ao Menu*`
+    \n5️⃣ *Termos de Uso:* ${client.termo.toUpperCase()}
+    \n6️⃣ *Tudo*
+    \n#️⃣ *Excluir o meu cadastro*\n🅿️ *Pesquisar*\nⓂ️ *Menu*\n🅾️ *SAIR*`
       
       
       
@@ -678,13 +751,19 @@ Obrigado por utilizar *102paraWhats®* 🙏`
     const client = await show(session);
 
     if (!client)
-      return response.json({
+      // return response.json({
+      //     followupEventInput: {
+      //     name: "pesquisa",
+      //     languageCode: "pt-BR"
+      //   }
+      // });
+        return response.json({  
         followupEventInput: {
           name: "perguntacep",
           languageCode: "pt-BR"
         }
       });
-    const mensagem = `Localidade: *${client.localidade}/${client.uf}*\n\nApoio local: *${client.apoiolocal.toUpperCase()}*`;
+    const mensagem = `Localidade: *${client.localidade}/${client.uf}*\n\nApoio local: *${client.termo.toUpperCase()}*`;
     return response.json({
       followupEventInput: {
         name: "pesquisa",
@@ -704,7 +783,7 @@ Obrigado por utilizar *102paraWhats®* 🙏`
    const cepnovo = String(queryResult.parameters.cep).replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"")
   const pesquisa = queryResult.parameters.pesquisa
   const client = await show(session);
-  let nome = "Visitante"
+  let nome = "🔢 *Visitante"
   if (client) nome = client.nome;
   if (pesquisa){ if (cepnovo.length === 8){
   let textoAjustado 
@@ -721,7 +800,7 @@ Obrigado por utilizar *102paraWhats®* 🙏`
     console.log(cep)
     const localidade = await viacep(cep);
      console.log(localidade)
-    const mensagem = `Localidade: *${localidade.localidade}/${localidade.uf}*`;
+    const mensagem = `*${localidade.localidade}/${localidade.uf}*`;
    console.log(localidade.localidade)
      return response.json({
       followupEventInput: {
@@ -764,7 +843,7 @@ Obrigado por utilizar *102paraWhats®* 🙏`
     console.log(cep)
     const localidade = await viacep(cep);
      console.log(localidade)
-    const mensagem = `Localidade: *${localidade.localidade}/${localidade.uf}*`;
+    const mensagem = `*${localidade.localidade}/${localidade.uf}*`;
    console.log(localidade.localidade)
      return response.json({
       followupEventInput: {
@@ -777,7 +856,7 @@ Obrigado por utilizar *102paraWhats®* 🙏`
         }
       }
     });}
-  const mensagem = `Localidade: *${cepnovo.toUpperCase()}*`;
+  const mensagem = `*${cepnovo.toUpperCase()}*`;
     return response.json({
       followupEventInput: {
         name: "pesquisa",
@@ -797,6 +876,31 @@ Obrigado por utilizar *102paraWhats®* 🙏`
   console.log("teste CEP")
     console.log(queryResult.parameters.cep)
     const localidade = (queryResult.parameters.localidade)
+    const menu = pesquisado.toUpperCase()
+   
+     if ((menu === "MENU")||(menu === "M")) {      
+        return response.json({
+      followupEventInput: {
+        name: "menu",
+        languageCode: "pt-BR"        
+      }
+    });
+    }  
+     if (menu === "0") {
+      
+        return response.json({
+        followupEventInput: {
+          name: "contato",
+          languageCode: "pt-BR",
+          parameters: {
+            mensagem:  "Espero ter ajudado 😊\nObrigado por utilizar o 102 para whatsapp 🙏",
+            
+          }
+        }
+      });
+      
+    } 
+    
     const resultas = await pesquisa(queryResult.parameters, localidade, session);
     
     console.log("teste CEP")
@@ -831,9 +935,7 @@ Obrigado por utilizar *102paraWhats®* 🙏`
       resultas.forEach((search, index) => {
         texto =   `🟡 ~${pesquisado.toUpperCase()}~ não foi encontrado em nossa base de dados.\nMas não se preocupe, expandimos a pesquisa para *todos os resultados em ${localidade.toUpperCase()}.*\nEsperamos que possa encontrar o que deseja. 😊`;
 
-        text += `\n\n*${index+1} - ${search.nomeFantasia.toUpperCase()}*\n*Whats:* https://wa.me/55${search.whats
-          .match(/\d+/g)
-          .join("")}\n*Atividade:* ${search.atividade.toLowerCase()}`;
+        text += `\n\n*${index+1} - ${search.nomeFantasia.toUpperCase()}*\n*Whats:* ${search.whatslink}\n*Atividade:* ${search.atividade.toLowerCase()}`;
       }); 
          console.log("retorno");
        console.log(`${texto}${text}`);
@@ -852,81 +954,70 @@ Obrigado por utilizar *102paraWhats®* 🙏`
     }
     
     resultas.forEach((search, index) => {
-      if (index === 0) {
+        if (index === 0) {
         texto = `*${resultas.length}* resultado (s) encontrados para *${pesquisado.toUpperCase()}* em *${localidade.toUpperCase()}*.`;
         numero = "1";
-          rodape = "🔢 Digite o *numero* da pesquisa para mais detalhes 😊"
+          rodape = "\n🔢 *Mais detalhes...*"
         text += `\n1️⃣ *${
           resultas[0].nomeFantasia.toUpperCase()
-        }* \n*Whats:* https://wa.me/55${resultas[0].whats.match(/\d+/g).join("")}`;
+        }* \n*Whats:* ${resultas[0].whatslink}`;
      
       
       }
       if (index === 1) {
         texto = `*${resultas.length}* resultado (s) encontrados para *${pesquisado.toUpperCase()}* em *${localidade.toUpperCase()}*.`;
         numero = "2";
-          rodape = "🔢 Digite o *numero* da pesquisa para mais detalhes 😊"
+          rodape = "\n🔢 *Mais detalhes...*"
         text = `\n1️⃣ *${
           resultas[0].nomeFantasia.toUpperCase()
-        }* \n*Whats:* https://wa.me/55${resultas[0].whats.match(/\d+/g).join("")}
+        }* \n*Whats:* ${resultas[0].whatslink}
                 \n2️⃣ *${
                   resultas[1].nomeFantasia.toUpperCase()
-                }* \n*Whats:* https://wa.me/55${resultas[1].whats
-          .match(/\d+/g)
-          .join("")}`;
+                }* \n*Whats:* ${resultas[1].whatslink}`;
       }
       if (index === 2) {
         texto = `*${resultas.length}* resultado (s) encontrados para *${pesquisado.toUpperCase()}* em *${localidade.toUpperCase()}*.`;
         numero = "3";
-          rodape = "🔢 Digite o *numero* da pesquisa para mais detalhes 😊"
+          rodape = "\n🔢 *Mais detalhes...*"
         text = `\n1️⃣ *${
           resultas[0].nomeFantasia.toUpperCase()
-        }* \n*Whats:* https://wa.me/55${resultas[0].whats.match(/\d+/g).join("")} 
+        }* \n*Whats:* ${resultas[0].whatslink} 
                 \n2️⃣ *${
                   resultas[1].nomeFantasia.toUpperCase()
-                }* \n*Whats:* https://wa.me/55${resultas[1].whats
-          .match(/\d+/g)
-          .join("")}
+                }* \n*Whats:* ${resultas[1].whatslink}
                 \n3️⃣ *${
                   resultas[2].nomeFantasia.toUpperCase()
-                }* \n*Whats:* https://wa.me/55${resultas[2].whats
-          .match(/\d+/g)
-          .join("")}`;
+                }* \n*Whats:* ${resultas[2].whatslink}`;
       }
       if (index === 3) {
         texto = `*${resultas.length}* resultado (s) encontrados para *${pesquisado.toUpperCase()}* em *${localidade.toUpperCase()}*.`;
         numero = "4";
-         rodape = "🔢 Digite o *numero* da pesquisa para mais detalhes 😊"
+         rodape = "\n🔢 *Mais detalhes...*"
         text = `\n1️⃣ *Nome:* ${
           resultas[0].nomeFantasia.toUpperCase()
-        } \n*Whats:* https://wa.me/55${resultas[0].whats.match(/\d+/g).join("")}
+        } \n*Whats:* ${resultas[0].whatslink}
                 \n2️⃣ *Nome:* ${
                   resultas[1].nomeFantasia.toUpperCase()
-                } \n*Whats:* https://wa.me/55${resultas[1].whats
-          .match(/\d+/g)
-          .join("")}
+                } \n*Whats:* ${resultas[1].whatslink}
                 \n3️⃣ *Nome:* ${
                   resultas[2].nomeFantasia.toUpperCase()
-                } \n*Whats:* https://wa.me/55${resultas[2].whats
-          .match(/\d+/g)
-          .join("")}
+                } \n*Whats:* ${resultas[2].whatslink}
                 \n4️⃣ *Nome:* ${
                   resultas[3].nomeFantasia.toUpperCase()
-                } \n*Whats:* https://wa.me/55${resultas[3].whats
-          .match(/\d+/g)
-          .join("")}`;
+                } \n*Whats:* ${resultas[3].whatslink}`;
       }
       if (index === 4) {
         texto = `*${resultas.length}* resultado (s) encontrados para *${pesquisado.toUpperCase()}* em *${localidade.toUpperCase()}*.`;
         numero = "4";
-      rodape = "🔢 Digite o *numero* da pesquisa para mais detalhes 😊"
-        text = `\n1️⃣ *${resultas[0].nomeFantasia.toUpperCase()}*\n*Whats:* https://wa.me/55${resultas[0].whats.match(/\d+/g).join("")} 
-                \n2️⃣ *${resultas[1].nomeFantasia.toUpperCase()}*\n*Whats:* https://wa.me/55${resultas[1].whats.match(/\d+/g).join("")} 
-                \n3️⃣ *${resultas[2].nomeFantasia.toUpperCase()}*\n*Whats:* https://wa.me/55${resultas[2].whats.match(/\d+/g).join("")}
-                \n4️⃣ *${resultas[3].nomeFantasia.toUpperCase()}*\n*Whats:* https://wa.me/55${resultas[3].whats.match(/\d+/g).join("")}
-                \n5️⃣ *Mais resultados*`;
+      rodape = "🔢 *Mais detalhes...*"
+        text = `\n1️⃣ *${resultas[0].nomeFantasia.toUpperCase()}*\n*Whats:* ${resultas[0].whatslink}
+                \n2️⃣ *${resultas[1].nomeFantasia.toUpperCase()}*\n*Whats:* ${resultas[1].whatslink}
+                \n3️⃣ *${resultas[2].nomeFantasia.toUpperCase()}*\n*Whats:* ${resultas[2].whatslink}
+                \n4️⃣ *${resultas[3].nomeFantasia.toUpperCase()}*\n*Whats:* ${resultas[3].whatslink}
+                \n5️⃣ *Mais resultados...*`;
       }
     });
+
 
     return response.json({
       followupEventInput: {
@@ -951,7 +1042,10 @@ Obrigado por utilizar *102paraWhats®* 🙏`
    
          if (menu === "M") {      
         const client = await show(session,);
-
+        if (!client) {    
+    return response.json({followupEventInput: {
+        name: "menu",}
+    });}
         return response.json({
       followupEventInput: {
         name: "menucadastrado",
@@ -964,7 +1058,11 @@ Obrigado por utilizar *102paraWhats®* 🙏`
     }  
      if (menu === "MENU") {      
         const client = await show(session,);
-
+        
+    if (!client) {    
+    return response.json({followupEventInput: {
+        name: "menu",}
+    });}
         return response.json({
       followupEventInput: {
         name: "menucadastrado",
@@ -980,9 +1078,9 @@ Obrigado por utilizar *102paraWhats®* 🙏`
     const client = await show(session);
     if (!client) {    
     return response.json({followupEventInput: {
-        name: "menu",}
+        name: "perguntacep",}
     });}
-    const apoiolocal = `${client.apoiolocal.toUpperCase()}*`;
+    const termo = `${client.termo.toUpperCase()}*`;
     const cidadeuf = `${client.localidade}/${client.uf}`
     return response.json({
       followupEventInput: {
@@ -991,7 +1089,7 @@ Obrigado por utilizar *102paraWhats®* 🙏`
         parameters: {
           nome: `${client.nome}`,
           localidade: `${client.localidade.toUpperCase()}`,
-          apoiolocal: `${apoiolocal}`,
+          termo: `${termo}`,
           cidadeuf: `${cidadeuf}`
         }
       }
@@ -1006,9 +1104,7 @@ Obrigado por utilizar *102paraWhats®* 🙏`
       console.log(resultas);
 
       resultas.forEach((search, index) => {
-        text += `\n\n*${index+1} - ${search.nomeFantasia.toUpperCase()}*\n*Whats:* https://wa.me/55${search.whats
-          .match(/\d+/g)
-          .join("")}`;
+        text += `\n\n*${index+1} - ${search.nomeFantasia.toUpperCase()}*\n*Whats:* ${search.whatslink}`;
       });
 
       return response.json({
@@ -1041,11 +1137,11 @@ Obrigado por utilizar *102paraWhats®* 🙏`
     } 
     else {
       const resultas = await pesquisa(queryResult.parameters, localidade, session);
-     const celular = resultas[numero - 1].whats;
-      const idUser = String(celular)
-        .match(/\d+/g)
-        .join("");
-      const whats = `https://wa.me/55${idUser}`;
+     // const celular = resultas[numero - 1].whats;
+     //  const idUser = String(celular)
+     //    .match(/\d+/g)
+     //    .join("");
+     //  const whats = `https://wa.me/55${idUser}`;
     let cidadematriz = (resultas[numero - 1].cidadematriz).toUpperCase();      
       let localidades = localidade.toUpperCase();    
       let local = "";
@@ -1063,7 +1159,7 @@ Obrigado por utilizar *102paraWhats®* 🙏`
             \n*Cidade:* ${resultas[numero - 1].localidade}/${resultas[numero - 1].uf}
             \n*Modo de atendimento:* ${resultas[numero - 1].tipo}
             \n*Horario de atendimento:* ${resultas[numero - 1].horario}
-            \n*Whats:* *${whats}*
+            \n*Whats:* *${resultas[numero - 1].whatslink}*
             \n*Facebook:* *${resultas[numero - 1].facebook}*
             \n*Instagram:* *${resultas[numero - 1].instagram}*
             \n*Site:* *${resultas[numero - 1].site}*
@@ -1091,22 +1187,13 @@ Obrigado por utilizar *102paraWhats®* 🙏`
   const localidade = queryResult.parameters.localidade;
   const numero = String(queryResult.parameters.texto);
   const menu = String(queryResult.parameters.texto).toUpperCase();
-        if (menu === "M") {      
+     
+     if ((menu === "MENU")||(menu === "M")) {      
         const client = await show(session,);
-
-        return response.json({
-      followupEventInput: {
-        name: "menucadastrado",
-        languageCode: "pt-BR",
-        parameters: {
-          nome: `${client.nome}`
-        }
-      }
-    });
-    }  
-     if (menu === "MENU") {      
-        const client = await show(session,);
-
+         if (!client) {    
+    return response.json({followupEventInput: {
+        name: "menu",}
+    });}
         return response.json({
       followupEventInput: {
         name: "menucadastrado",
@@ -1121,9 +1208,9 @@ Obrigado por utilizar *102paraWhats®* 🙏`
     const client = await show(session);
     if (!client) {    
     return response.json({followupEventInput: {
-        name: "menu",}
+        name: "perguntacep",}
     });}
-    const apoiolocal = `${client.apoiolocal.toUpperCase()}*`;
+    const termo = `${client.termo.toUpperCase()}*`;
     const cidadeuf = `${client.localidade}/${client.uf}`
     return response.json({
       followupEventInput: {
@@ -1132,7 +1219,7 @@ Obrigado por utilizar *102paraWhats®* 🙏`
         parameters: {
           nome: `${client.nome}`,
           localidade: `${client.localidade.toUpperCase()}`,
-          apoiolocal: `${apoiolocal}`,
+          termo: `${termo}`,
           cidadeuf: `${cidadeuf}`
         }
       }
@@ -1152,11 +1239,11 @@ Obrigado por utilizar *102paraWhats®* 🙏`
       });
     } else {
       const resultas = await pesquisa(queryResult.parameters, localidade, session);
-      let celular = resultas[numero - 1].whats;
-      const idUser = String(celular)
-        .match(/\d+/g)
-        .join("");
-      const whats = `https://wa.me/55${idUser}`;
+      // let celular = resultas[numero - 1].whats;
+      // const idUser = String(celular)
+      //   .match(/\d+/g)
+      //   .join("");
+      // const whats = `https://wa.me/55${idUser}`;
     let cidadematriz = (resultas[numero - 1].cidadematriz).toUpperCase();      
       let localidades = localidade.toUpperCase();    
       let local = "";
@@ -1174,7 +1261,7 @@ Obrigado por utilizar *102paraWhats®* 🙏`
             \n*Cidade:* ${resultas[numero - 1].localidade}/${resultas[numero - 1].uf}
             \n*Modo de atendimento:* ${resultas[numero - 1].tipo}
             \n*Horario de atendimento:* ${resultas[numero - 1].horario}
-            \n*Whats:* *${whats}*
+            \n*Whats:* *${resultas[numero - 1].whatslink}*
             \n*Facebook:* *${resultas[numero - 1].facebook}*
             \n*Instagram:* *${resultas[numero - 1].instagram}*
             \n*Site:* *${resultas[numero - 1].site}*
@@ -1225,18 +1312,22 @@ Obrigado por utilizar *102paraWhats®* 🙏`
 
   
    if (queryResult.intent.displayName === "respostaexpandidatudo") {
-    const pesquisado = String(queryResult.parameters.atividade);
-  const localidade = queryResult.parameters.localidade
+      console.log("respostaexpandidatudo")
+     const pesquisado = String(queryResult.parameters.atividade);
+      const menu = String(queryResult.parameters.texto).toUpperCase()
+
+     const localidade = queryResult.parameters.localidade
     const numero = String(queryResult.parameters.texto);
-console.log(pesquisado)
+
      console.log(pesquisado)
-              if (numero === "*") {
+    if ((menu === "P")||(menu === "PESQUISAR")||(menu === "PESQUISA")) {
+       console.log("pesquisa")
     const client = await show(session);
     if (!client) {    
     return response.json({followupEventInput: {
-        name: "menu",}
+        name: "menu1"}
     });}
-    const apoiolocal = `${client.apoiolocal.toUpperCase()}*`;
+    const termo = `${client.termo.toUpperCase()}*`;
     const cidadeuf = `${client.localidade}/${client.uf}`
     return response.json({
       followupEventInput: {
@@ -1245,14 +1336,31 @@ console.log(pesquisado)
         parameters: {
           nome: `${client.nome}`,
           localidade: `${client.localidade.toUpperCase()}`,
-          apoiolocal: `${apoiolocal}`,
+          termo: `${termo}`,
           cidadeuf: `${cidadeuf}`
         }
       }
     });       
     } 
-    if (numero === "0") {
-      
+      if ((menu === "M")||(menu === "MENU"))  {
+         console.log("menu")
+    const client = await show(session);
+    if (!client) {    
+    return response.json({followupEventInput: {
+        name: "menu"}
+    });}
+   return response.json({
+      followupEventInput: {
+        name: "menucadastrado",
+        languageCode: "pt-BR",
+        parameters: {
+          nome: `${client.nome}`
+        }
+      }
+    });  
+    } 
+     if ((menu === "0")||(menu === "SAIR")||(menu === "S"))  {
+       console.log("sair")
         return response.json({
         followupEventInput: {
           name: "contato",
@@ -1275,11 +1383,11 @@ console.log(pesquisado)
      
       
       console.log(resultas)
-      const celular = resultas[numero - 1].whats;
-      const idUser = String(celular)
-        .match(/\d+/g)
-        .join("");
-      const whats = `https://wa.me/55${idUser}`;
+      // const celular = resultas[numero - 1].whats;
+      // const idUser = String(celular)
+      //   .match(/\d+/g)
+      //   .join("");
+      // const whats = `https://wa.me/55${idUser}`;
        
       let cidadematriz = (resultas[numero - 1].cidadematriz).toUpperCase();      
       let localidades = localidade.toUpperCase();    
@@ -1298,7 +1406,7 @@ console.log(pesquisado)
             \n*Cidade:* ${resultas[numero - 1].localidade}/${resultas[numero - 1].uf}
             \n*Modo de atendimento:* ${resultas[numero - 1].tipo}
             \n*Horario de atendimento:* ${resultas[numero - 1].horario}
-            \n*Whats:* *${whats}*
+            \n*Whats:* *${resultas[numero - 1].whatslink}*
             \n*Facebook:* *${resultas[numero - 1].facebook}*
             \n*Instagram:* *${resultas[numero - 1].instagram}*
             \n*Site:* *${resultas[numero - 1].site}*
@@ -1314,14 +1422,46 @@ console.log(pesquisado)
             mensagem: `${text}`,
             atividade: `${pesquisado}`,
             localidade: `${queryResult.parameters.localidade}`,
-            rodape: "5️⃣ *Mais resultados*"
+            rodape: "5️⃣ *Mais resultados...*",
+            numero: numero
           }
         }
       });
     }
   }
 
- 
+ if (queryResult.intent.displayName === "generico") {
+    const numero =  queryResult.parameters.numero
+       let texto =""
+       if (numero === "1"){ texto= "Obrigado pela sua contribuição. Sua nota está sendo processada.\n"};
+       if (numero === "2"){ texto= "Obrigado por compartilhar.\n"};  
+       if (numero === "3"){ texto= "Obrigado por nos informar, iremos tomar as medidas Cabíveis.\n"};
+       if (numero === "4"){ texto= "Obrigado por nos informar, iremos corrigir o mais breve possivel.\n"};  
+    const client = await show(session);
+    
+   if (!client)   
+    return response.json({followupEventInput: {
+        name: "menu",
+      languageCode: "pt-BR",
+        parameters: {
+          mensagem: `${texto}\n🔢 *Visitante`
+        }
+    }
+    });
+   return response.json({
+      followupEventInput: {
+        name: "menucadastrado",
+        languageCode: "pt-BR",
+        parameters: {
+          mensagem: `${texto}\n*${client.nome}`
+        }
+      }
+    });  
+     
+     
+    
+  }
+
 
   
    if (queryResult.intent.displayName === "respostadetalhada") {
@@ -1329,10 +1469,14 @@ console.log(pesquisado)
   const localidade = queryResult.parameters.localidade
     const numero = String(queryResult.parameters.texto);
      const menu = String(queryResult.parameters.texto).toUpperCase();
-      if (menu === "M") {      
-        const client = await show(session,);
-
-        return response.json({
+         if (menu === "M")  {
+         console.log("menu")
+    const client = await show(session);
+    if (!client) {    
+    return response.json({followupEventInput: {
+        name: "menu"}
+    });}
+   return response.json({
       followupEventInput: {
         name: "menucadastrado",
         languageCode: "pt-BR",
@@ -1340,28 +1484,15 @@ console.log(pesquisado)
           nome: `${client.nome}`
         }
       }
-    });
-    }  
-     if (menu === "MENU") {      
-        const client = await show(session,);
-
-        return response.json({
-      followupEventInput: {
-        name: "menucadastrado",
-        languageCode: "pt-BR",
-        parameters: {
-          nome: `${client.nome}`
-        }
-      }
-    });
-    }
+    });  
+    } 
             if (menu === "P") {
     const client = await show(session);
     if (!client) {    
     return response.json({followupEventInput: {
-        name: "menu",}
+        name: "perguntacep"}
     });}
-    const apoiolocal = `${client.apoiolocal.toUpperCase()}*`;
+    const termo = `${client.termo.toUpperCase()}*`;
     const cidadeuf = `${client.localidade}/${client.uf}`
     return response.json({
       followupEventInput: {
@@ -1370,7 +1501,7 @@ console.log(pesquisado)
         parameters: {
           nome: `${client.nome}`,
           localidade: `${client.localidade.toUpperCase()}`,
-          apoiolocal: `${apoiolocal}`,
+          termo: `${termo}`,
           cidadeuf: `${cidadeuf}`
         }
       }
@@ -1385,9 +1516,7 @@ console.log(pesquisado)
       console.log(resultas);
 
       resultas.forEach((search, index) => {
-        text += `\n\n*${index+1} - ${search.nomeFantasia.toUpperCase()}*\n*Whats:* https://wa.me/55${search.whats.
-        match(/\d+/g)
-        .join("")}`;
+        text += `\n\n*${index+1} - ${search.nomeFantasia.toUpperCase()}*\n*Whats:* ${search.whatslink}`;
       });
 
       return response.json({
@@ -1417,51 +1546,71 @@ console.log(pesquisado)
           }
         }
       });
-    } else {
-      const resultas = await pesquisa(queryResult.parameters, localidade, session);
-      let celular = resultas[numero - 1].whats;
-      const idUser = String(celular)
-        .match(/\d+/g)
-        .join("");
-      const whats = `https://wa.me/55${idUser}`;
-    let cidadematriz = (resultas[numero - 1].cidadematriz).toUpperCase();      
-      let localidades = localidade.toUpperCase();    
-      let local = "";
-      if (cidadematriz === localidades) local = `\n\nEssa é uma empresa ou serviço de Empreendedores da sua cidade`;      
-      let text = "";
-
-      resultas.forEach((search, index) => {
-        text = `*${resultas[numero - 1].nomeFantasia.toUpperCase()}*
-            \n*Verificação:* ${resultas[numero - 1].contaverificada}
-            \n*Avaliação:* ${resultas[numero - 1].estrela}
-            \n*Atividade:* ${resultas[numero - 1].atividade}
-            \n*Telefone:* ${resultas[numero - 1].telefone}
-            \n*Endereço:* ${resultas[numero - 1].rua} *N°:* ${resultas[numero - 1].numero}
-            \n*Bairro:* ${resultas[numero - 1].bairro}
-            \n*Cidade:* ${resultas[numero - 1].localidade}/${resultas[numero - 1].uf}
-            \n*Modo de atendimento:* ${resultas[numero - 1].tipo}
-            \n*Horario de atendimento:* ${resultas[numero - 1].horario}
-            \n*Whats:* *${whats}*
-            \n*Facebook:* *${resultas[numero - 1].facebook}*
-            \n*Instagram:* *${resultas[numero - 1].instagram}*
-            \n*Site:* *${resultas[numero - 1].site}*
-            \n*Email:* *${resultas[numero - 1].email}*
-            \n*Como Chegar:* *${resultas[numero - 1].comochegar}*${local}`;
-      });
-
-      return response.json({
+    } 
+     if ((numero === "1")||(numero === "2")||(numero === "3")||(numero === "4"))  {
+        let mensagem = ""
+       if (numero === "1"){ mensagem= "*Em uma escala de 0 a 5, como você avalia essa Empresa ou Serviço?*"};
+       if (numero === "2"){ mensagem= "*Digite o telefone para quem você deseja compartilhar*"};  
+       if (numero === "3"){ mensagem= "Para melhores providencias, nos explique sua Denuncia"};
+       if (numero === "4"){ mensagem= "Nos relate o problema enfrentado"};  
+        return response.json({
         followupEventInput: {
-          name: "respostadetalhada",
+          name: "generico",
           languageCode: "pt-BR",
           parameters: {
-            mensagem: `${text}`,
-            atividade: `${pesquisado}`,
-            localidade: `${queryResult.parameters.localidade}`,
-            rodape: "5️⃣ *Mais resultados*"
+            mensagem:  mensagem,
+            numero: numero
+            
           }
+        
         }
       });
     }
+//      else {
+//       const resultas = await pesquisa(queryResult.parameters, localidade, session);
+//       let celular = resultas[numero - 1].whats;
+//       const idUser = String(celular)
+//         .match(/\d+/g)
+//         .join("");
+//       const whats = `https://wa.me/55${idUser}`;
+//     let cidadematriz = (resultas[numero - 1].cidadematriz).toUpperCase();      
+//       let localidades = localidade.toUpperCase();    
+//       let local = "";
+//       if (cidadematriz === localidades) local = `\n\nEssa é uma empresa ou serviço de Empreendedores da sua cidade`;      
+//       let text = "";
+
+//       resultas.forEach((search, index) => {
+//         text = `*${resultas[numero - 1].nomeFantasia.toUpperCase()}*
+//             \n*Verificação:* ${resultas[numero - 1].contaverificada}
+//             \n*Avaliação:* ${resultas[numero - 1].estrela}
+//             \n*Atividade:* ${resultas[numero - 1].atividade}
+//             \n*Telefone:* ${resultas[numero - 1].telefone}
+//             \n*Endereço:* ${resultas[numero - 1].rua} *N°:* ${resultas[numero - 1].numero}
+//             \n*Bairro:* ${resultas[numero - 1].bairro}
+//             \n*Cidade:* ${resultas[numero - 1].localidade}/${resultas[numero - 1].uf}
+//             \n*Modo de atendimento:* ${resultas[numero - 1].tipo}
+//             \n*Horario de atendimento:* ${resultas[numero - 1].horario}
+//             \n*Whats:* *${whats}*
+//             \n*Facebook:* *${resultas[numero - 1].facebook}*
+//             \n*Instagram:* *${resultas[numero - 1].instagram}*
+//             \n*Site:* *${resultas[numero - 1].site}*
+//             \n*Email:* *${resultas[numero - 1].email}*
+//             \n*Como Chegar:* *${resultas[numero - 1].comochegar}*${local}`;
+//       });
+
+//       return response.json({
+//         followupEventInput: {
+//           name: "respostadetalhada",
+//           languageCode: "pt-BR",
+//           parameters: {
+//             mensagem: `${text}`,
+//             atividade: `${pesquisado}`,
+//             localidade: `${queryResult.parameters.localidade}`,
+//             rodape: "5️⃣ *Mais resultados*"
+//           }
+//         }
+//       });
+//     }
   }
 
  if (queryResult.intent.displayName === "respostaexpandidadetalhada") {
@@ -1469,13 +1618,15 @@ console.log(pesquisado)
    const pesquisado = String(queryResult.parameters.atividade);
 
     const numero = String(queryResult.parameters.texto);
-         if (numero === "*") {
+      const menu = String(queryResult.parameters.texto).toUpperCase()
+   if (menu === "P") {
+       console.log("pesquisa")
     const client = await show(session);
     if (!client) {    
     return response.json({followupEventInput: {
-        name: "menu",}
+        name: "perguntacep"}
     });}
-    const apoiolocal = `${client.apoiolocal.toUpperCase()}*`;
+    const termo = `${client.termo.toUpperCase()}*`;
     const cidadeuf = `${client.localidade}/${client.uf}`
     return response.json({
       followupEventInput: {
@@ -1484,12 +1635,61 @@ console.log(pesquisado)
         parameters: {
           nome: `${client.nome}`,
           localidade: `${client.localidade.toUpperCase()}`,
-          apoiolocal: `${apoiolocal}`,
+          termo: `${termo}`,
           cidadeuf: `${cidadeuf}`
         }
       }
     });       
     } 
+      if (menu === "M")  {
+         console.log("menu")
+    const client = await show(session);
+    if (!client) {    
+    return response.json({followupEventInput: {
+        name: "menu"}
+    });}
+   return response.json({
+      followupEventInput: {
+        name: "menucadastrado",
+        languageCode: "pt-BR",
+        parameters: {
+          nome: `${client.nome}`
+        }
+      }
+    });  
+    } 
+     if (menu === "0")  {
+       console.log("sair")
+        return response.json({
+        followupEventInput: {
+          name: "contato",
+          languageCode: "pt-BR",
+          parameters: {
+            mensagem:  "Espero ter ajudado 😊\nObrigado por utilizar o 102 para whatsapp 🙏",
+            
+          }
+        }
+      });
+    }
+     if ((numero === "1")||(numero === "2")||(numero === "3")||(numero === "4"))  {
+        let mensagem = ""
+       if (numero === "1"){ mensagem= "*Em uma escala de 0 a 5, como você avalia essa Empresa ou Serviço?*"};
+       if (numero === "2"){ mensagem= "*Digite o telefone para quem você deseja compartilhar*"};  
+       if (numero === "3"){ mensagem= "Para melhores providencias, nos explique sua Denuncia"};
+       if (numero === "4"){ mensagem= "Nos relate o problema enfrentado"};  
+        return response.json({
+        followupEventInput: {
+          name: "generico",
+          languageCode: "pt-BR",
+          parameters: {
+            mensagem:  mensagem,
+            numero: numero
+            
+          }
+        
+        }
+      });
+    }
        if (numero === "5") {
       const resultas = await pesquisasimples(queryResult.parameters, localidade);
        await resultas.sort(function (a, b) {
@@ -1504,9 +1704,7 @@ console.log(pesquisado)
       console.log(resultas);
 
       resultas.forEach((search, index) => {
-        text += `\n\n*${index+1} - ${search.nomeFantasia.toUpperCase()}*\n*Whats:* https://wa.me/55${search.whats.
-        match(/\d+/g)
-        .join("")}\n*Atividade:* ${search.atividade.toLowerCase()}`;
+        text += `\n\n*${index+1} - ${search.nomeFantasia.toUpperCase()}*\n*Whats:* ${search.whatslink}\n*Atividade:* ${search.atividade.toLowerCase()}`;
       });
 
       return response.json({
@@ -1521,21 +1719,6 @@ console.log(pesquisado)
           }
         }
       });
-    }
-
-
-    if (numero === "0") {
-      
-        return response.json({
-        followupEventInput: {
-          name: "contato",
-          languageCode: "pt-BR",
-          parameters: {
-            mensagem:  "Espero ter ajudado 😊\nObrigado por utilizar o 102 para whatsapp 🙏",
-            
-          }
-        }
-      });
     } else {
       //verificar para excluir aqui
       const resultas = await pesquisasimples(queryResult.parameters, localidade);
@@ -1545,11 +1728,11 @@ console.log(pesquisado)
 
   
 });
-      let celular = resultas[numero - 1].whats;
-      const idUser = String(celular)
-        .match(/\d+/g)
-        .join("");
-      const whats = `https://wa.me/55${idUser}`;
+      // let celular = resultas[numero - 1].whats;
+      // const idUser = String(celular)
+      //   .match(/\d+/g)
+      //   .join("");
+      // const whats = `https://wa.me/55${idUser}`;
     let cidadematriz = (resultas[numero - 1].cidadematriz).toUpperCase();      
       let localidades = localidade.toUpperCase();    
       let local = "";
@@ -1567,11 +1750,11 @@ console.log(pesquisado)
             \n*Cidade:* ${resultas[numero - 1].localidade}/${resultas[numero - 1].uf}
             \n*Modo de atendimento:* ${resultas[numero - 1].tipo}
             \n*Horario de atendimento:* ${resultas[numero - 1].horario}
-            \n*Whats:* *${whats}*
+            \n*Whats:* *${resultas[numero - 1].whatslink}*
             \n*Facebook:* *${resultas[numero - 1].facebook}*
             \n*Instagram:* *${resultas[numero - 1].instagram}*
             \n*Site:* *${resultas[numero - 1].site}*
-            \n*Email:* *${resultas[numero - 1].email}*
+            \n*E-mail:* *${resultas[numero - 1].email}*
             \n*Como Chegar:* *${resultas[numero - 1].comochegar}*${local}`;
       });
 
@@ -1939,14 +2122,61 @@ console.log(pesquisado)
   }
   
  if (queryResult.intent.displayName === "chamamenu") {
-    const client = await show(session);
-    return response.json({
+   //console.log(queryResult) 
+   const client = await show(session);
+    
+   const menu = (queryResult.queryText).toUpperCase()
+    if (!client) {
+         if ((menu === "M")||(menu === "MENU")) {     
+      return response.json({
       followupEventInput: {
         name: "menu",
-        languageCode: "pt-BR",
-        parameters: { nome: `Estou aqui *${client.nome}*`, usuario: "Acessar meu cadastro" }
+        languageCode: "pt-BR"       
       }
     });
+    }  
+     if ((menu === "P")||(menu === "PESQUISA")||(menu === "PESQUISAR")) {    
+      console.log("chama menu p") 
+       return response.json({
+      followupEventInput: {
+        name: "perguntacep",
+        languageCode: "pt-BR"      
+      }
+    });
+   
+    }
+       
+    }
+   
+   if ((menu === "M")||(menu === "MENU")) {     
+      return response.json({
+      followupEventInput: {
+        name: "menucadastrado",
+        languageCode: "pt-BR",
+        parameters: {
+          nome: `${client.nome}`
+        }
+      }
+    });
+    }  
+     if ((menu === "P")||(menu === "PESQUISA")||(menu === "PESQUISAR")) {    
+    const termo = `${client.termo.toUpperCase()}*`;
+    const cidadeuf = `${client.localidade}/${client.uf}`
+    return response.json({
+      followupEventInput: {
+        name: "menurapido",
+        languageCode: "pt-BR",
+        parameters: {
+          nome: `${client.nome}`,
+          localidade: `${client.localidade.toUpperCase()}`,
+          termo: `${termo}`,
+          cidadeuf: `${cidadeuf}`
+        }
+      }
+    }); 
+   
+    }
+   
   }
   
    
@@ -2029,7 +2259,7 @@ Razão social: ${cnpj.razaoSocial}
 
 2️⃣ *Contatos telefônicos:*
 Telefone Celular: ${cnpj.whats}
-Whats: https://wa.me/55${idUser}
+Whats: ${cnpj.whatslink}
 Telefone Fixo: ${cnpj.telefone}
 
 3️⃣ *Endereço e Como Chegar:*
@@ -2089,7 +2319,8 @@ E-mail: ${cnpj.email}
     console.log(queryResult.parameters.localidade)
     const localidade = (queryResult.parameters.localidade)
     const menu = pesquisado.toUpperCase()
-      if (menu === "M") {      
+    
+     if ((menu === "MENU")||(menu === "M")) {      
         const client = await show(session,);
 
         return response.json({
@@ -2101,20 +2332,20 @@ E-mail: ${cnpj.email}
         }
       }
     });
-    }  
-     if (menu === "MENU") {      
-        const client = await show(session,);
-
-        return response.json({
+    } 
+     if (menu === "0") {      
+      return response.json({
       followupEventInput: {
-        name: "menucadastrado",
+        name: "contato",
         languageCode: "pt-BR",
         parameters: {
-          nome: `${client.nome}`
+          mensagem: `Espero ter ajudado 😊
+
+Obrigado por utilizar *102paraWhats®* 🙏`
         }
       }
     });
-    } else {
+    }else {
     console.log("menu rapido pesquisa")
       
       console.log(session)
@@ -2156,9 +2387,7 @@ console.log(resultas)
       resultas.forEach((search, index) => {
       texto =   `🟡 ~${pesquisado.toUpperCase()}~ não foi encontrado em nossa base de dados.\nMas não se preocupe, expandimos a pesquisa para *todos os resultados em ${localidade.toUpperCase()}.*\nEsperamos que possa encontrar o que deseja. 😊`;
 
-        text += `\n\n*${index+1} - ${search.nomeFantasia.toUpperCase()}*\n*Whats:* https://wa.me/55${search.whats
-          .match(/\d+/g)
-          .join("")}\n*Atividade:* ${search.atividade.toLowerCase()}`;
+        text += `\n\n*${index+1} - ${search.nomeFantasia.toUpperCase()}*\n*Whats:* ${search.whatslink}\n*Atividade:* ${search.atividade.toLowerCase()}`;
       }); 
          console.log("retorno");
        console.log(`${texto}${text}`);
@@ -2183,7 +2412,7 @@ console.log(resultas)
           rodape = "\n🔢 *Mais detalhes...*"
         text += `\n1️⃣ *${
           resultas[0].nomeFantasia.toUpperCase()
-        }* \n*Whats:* https://wa.me/55${resultas[0].whats.match(/\d+/g).join("")}\n${resultas[0].distancia.toFixed(1)} Km`;
+        }* \n*Whats:* ${resultas[0].whatslink}\n${resultas[0].distancia.toFixed(1)} Km`;
      
       
       }
@@ -2193,12 +2422,10 @@ console.log(resultas)
           rodape = "\n🔢 *Mais detalhes...*"
         text = `\n1️⃣ *${
           resultas[0].nomeFantasia.toUpperCase()
-        }* \n*Whats:* https://wa.me/55${resultas[0].whats.match(/\d+/g).join("")}\n${resultas[0].distancia.toFixed(1)} Km
+        }* \n*Whats:* ${resultas[0].whatslink}\n${resultas[0].distancia.toFixed(1)} Km
                 \n2️⃣ *${
                   resultas[1].nomeFantasia.toUpperCase()
-                }* \n*Whats:* https://wa.me/55${resultas[1].whats
-          .match(/\d+/g)
-          .join("")}\n${resultas[1].distancia.toFixed(1)} Km`;
+                }* \n*Whats:* ${resultas[1].whatslink}\n${resultas[1].distancia.toFixed(1)} Km`;
       }
       if (index === 2) {
         texto = `*${resultas.length}* resultado (s) encontrados para *${pesquisado.toUpperCase()}* em *${localidade.toUpperCase()}*.`;
@@ -2206,17 +2433,13 @@ console.log(resultas)
           rodape = "\n🔢 *Mais detalhes...*"
         text = `\n1️⃣ *${
           resultas[0].nomeFantasia.toUpperCase()
-        }* \n*Whats:* https://wa.me/55${resultas[0].whats.match(/\d+/g).join("")}\n${resultas[1].distancia.toFixed(1)} Km 
+        }* \n*Whats:* ${resultas[0].whatslink}\n${resultas[0].distancia.toFixed(1)} Km 
                 \n2️⃣ *${
                   resultas[1].nomeFantasia.toUpperCase()
-                }* \n*Whats:* https://wa.me/55${resultas[1].whats
-          .match(/\d+/g)
-          .join("")}\n${resultas[1].distancia.toFixed(1)} Km
+                }* \n*Whats:* ${resultas[1].whatslink}\n${resultas[1].distancia.toFixed(1)} Km
                 \n3️⃣ *${
                   resultas[2].nomeFantasia.toUpperCase()
-                }* \n*Whats:* https://wa.me/55${resultas[2].whats
-          .match(/\d+/g)
-          .join("")}\n${resultas[2].distancia.toFixed(1)} Km`;
+                }* \n*Whats:* ${resultas[2].whatslink}\n${resultas[2].distancia.toFixed(1)} Km`;
       }
       if (index === 3) {
         texto = `*${resultas.length}* resultado (s) encontrados para *${pesquisado.toUpperCase()}* em *${localidade.toUpperCase()}*.`;
@@ -2224,31 +2447,25 @@ console.log(resultas)
          rodape = "\n🔢 *Mais detalhes...*"
         text = `\n1️⃣ *Nome:* ${
           resultas[0].nomeFantasia.toUpperCase()
-        } \n*Whats:* https://wa.me/55${resultas[0].whats.match(/\d+/g).join("")}\n${resultas[0].distancia.toFixed(1)} Km
+        } \n*Whats:* ${resultas[0].whatslink}\n${resultas[0].distancia.toFixed(1)} Km
                 \n2️⃣ *Nome:* ${
                   resultas[1].nomeFantasia.toUpperCase()
-                } \n*Whats:* https://wa.me/55${resultas[1].whats
-          .match(/\d+/g)
-          .join("")}\n${resultas[1].distancia.toFixed(1)} Km
+                } \n*Whats:* ${resultas[1].whatslink}\n${resultas[1].distancia.toFixed(1)} Km
                 \n3️⃣ *Nome:* ${
                   resultas[2].nomeFantasia.toUpperCase()
-                } \n*Whats:* https://wa.me/55${resultas[2].whats
-          .match(/\d+/g)
-          .join("")}\n${resultas[2].distancia.toFixed(1)} Km
+                } \n*Whats:* ${resultas[2].whatslink}\n${resultas[2].distancia.toFixed(1)} Km
                 \n4️⃣ *Nome:* ${
                   resultas[3].nomeFantasia.toUpperCase()
-                } \n*Whats:* https://wa.me/55${resultas[3].whats
-          .match(/\d+/g)
-          .join("")}\n${resultas[3].distancia.toFixed(1)} Km`;
+                } \n*Whats:* ${resultas[3].whatslink}\n${resultas[3].distancia.toFixed(1)} Km`;
       }
       if (index === 4) {
         texto = `*${resultas.length}* resultado (s) encontrados para *${pesquisado.toUpperCase()}* em *${localidade.toUpperCase()}*.`;
         numero = "4";
       rodape = "🔢 *Mais detalhes...*"
-        text = `\n1️⃣ *${resultas[0].nomeFantasia.toUpperCase()}*\n*Whats:* https://wa.me/55${resultas[0].whats.match(/\d+/g).join("")}\n${resultas[0].distancia.toFixed(1)} Km
-                \n2️⃣ *${resultas[1].nomeFantasia.toUpperCase()}*\n*Whats:* https://wa.me/55${resultas[1].whats.match(/\d+/g).join("")}\n${resultas[1].distancia.toFixed(1)} Km 
-                \n3️⃣ *${resultas[2].nomeFantasia.toUpperCase()}*\n*Whats:* https://wa.me/55${resultas[2].whats.match(/\d+/g).join("")}\n${resultas[2].distancia.toFixed(1)} Km
-                \n4️⃣ *${resultas[3].nomeFantasia.toUpperCase()}*\n*Whats:* https://wa.me/55${resultas[3].whats.match(/\d+/g).join("")}\n${resultas[3].distancia.toFixed(1)} Km
+        text = `\n1️⃣ *${resultas[0].nomeFantasia.toUpperCase()}*\n*Whats:* ${resultas[0].whatslink}\n${resultas[0].distancia.toFixed(1)} Km
+                \n2️⃣ *${resultas[1].nomeFantasia.toUpperCase()}*\n*Whats:* ${resultas[1].whatslink}\n${resultas[1].distancia.toFixed(1)} Km 
+                \n3️⃣ *${resultas[2].nomeFantasia.toUpperCase()}*\n*Whats:* ${resultas[2].whatslink}\n${resultas[2].distancia.toFixed(1)} Km
+                \n4️⃣ *${resultas[3].nomeFantasia.toUpperCase()}*\n*Whats:* ${resultas[3].whatslink}\n${resultas[3].distancia.toFixed(1)} Km
                 \n5️⃣ *Mais resultados...*`;
       }
     });
@@ -2294,10 +2511,9 @@ console.log("menu cadastrado")
     \n2️⃣ *Telefone:* ${client.telefone}
     \n3️⃣ *Endereço:* ${client.rua}\n${client.localidade}/${client.uf}
     \n4️⃣ *N° da rua:* ${client.numero}   
-    \n5️⃣ *Termos de Uso:* ${client.apoiolocal.toUpperCase()}
-    \n0️⃣ *Tudo*
-    \n#️⃣ *Excluir o meu cadastro*
-    \nⓂ️ *Retornar ao Menu*`
+    \n5️⃣ *Termos de Uso:* ${client.termo.toUpperCase()}
+    \n6️⃣ *Tudo*
+    \n#️⃣ *Excluir o meu cadastro*\n🅿️ *Pesquisar*\nⓂ️ *Menu*\n🅾️ *SAIR*`
       
       
       
@@ -2346,7 +2562,7 @@ console.log("menu cadastrado")
        if (menu === "P") {      
         const client = await show(session,);
   
-        const apoiolocal = `${client.apoiolocal.toUpperCase()}*`;
+        const termo = `${client.termo.toUpperCase()}*`;
     const cidadeuf = `${client.localidade}/${client.uf}`
     return response.json({
       followupEventInput: {
@@ -2355,7 +2571,7 @@ console.log("menu cadastrado")
         parameters: {
           nome: `${client.nome}`,
           localidade: `${client.localidade.toUpperCase()}`,
-          apoiolocal: `${apoiolocal}`,
+          termo: `${termo}`,
           cidadeuf: `${cidadeuf}`
         }
       }
@@ -2507,9 +2723,7 @@ console.log(resultas)
       resultas.forEach((search, index) => {
         texto =   `🟡 ~${pesquisado.toUpperCase()}~ não foi encontrado em nossa base de dados.\nMas não se preocupe, expandimos a pesquisa para *todos os resultados em ${localidade.toUpperCase()}.*\nEsperamos que possa encontrar o que deseja. 😊`;
 
-        text += `\n\n*${index+1} - ${search.nomeFantasia.toUpperCase()}*\n*Whats:* https://wa.me/55${search.whats
-          .match(/\d+/g)
-          .join("")}\n*Atividade:* ${search.atividade.toLowerCase()}`;
+        text += `\n\n*${index+1} - ${search.nomeFantasia.toUpperCase()}*\n*Whats:* ${search.whatslink}\n*Atividade:* ${search.atividade.toLowerCase()}`;
       }); 
          console.log("retorno");
        console.log(`${texto}${text}`);
@@ -2527,80 +2741,68 @@ console.log(resultas)
       });
     }
     
-    resultas.forEach((search, index) => {
+     resultas.forEach((search, index) => {
         if (index === 0) {
         texto = `*${resultas.length}* resultado (s) encontrados para *${pesquisado.toUpperCase()}* em *${localidade.toUpperCase()}*.`;
         numero = "1";
-          rodape = "🔢 Digite o *numero* da pesquisa para mais detalhes 😊"
+          rodape = "\n🔢 *Mais detalhes...*"
         text += `\n1️⃣ *${
           resultas[0].nomeFantasia.toUpperCase()
-        }* \n*Whats:* https://wa.me/55${resultas[0].whats.match(/\d+/g).join("")}`;
+        }* \n*Whats:* ${resultas[0].whatslink}\n${resultas[0].distancia.toFixed(1)} Km`;
      
       
       }
       if (index === 1) {
         texto = `*${resultas.length}* resultado (s) encontrados para *${pesquisado.toUpperCase()}* em *${localidade.toUpperCase()}*.`;
         numero = "2";
-          rodape = "🔢 Digite o *numero* da pesquisa para mais detalhes 😊"
+          rodape = "\n🔢 *Mais detalhes...*"
         text = `\n1️⃣ *${
           resultas[0].nomeFantasia.toUpperCase()
-        }* \n*Whats:* https://wa.me/55${resultas[0].whats.match(/\d+/g).join("")}
+        }* \n*Whats:* ${resultas[0].whatslink}\n${resultas[0].distancia.toFixed(1)} Km
                 \n2️⃣ *${
                   resultas[1].nomeFantasia.toUpperCase()
-                }* \n*Whats:* https://wa.me/55${resultas[1].whats
-          .match(/\d+/g)
-          .join("")}`;
+                }* \n*Whats:* ${resultas[1].whatslink}\n${resultas[1].distancia.toFixed(1)} Km`;
       }
       if (index === 2) {
         texto = `*${resultas.length}* resultado (s) encontrados para *${pesquisado.toUpperCase()}* em *${localidade.toUpperCase()}*.`;
         numero = "3";
-          rodape = "🔢 Digite o *numero* da pesquisa para mais detalhes 😊"
+          rodape = "\n🔢 *Mais detalhes...*"
         text = `\n1️⃣ *${
           resultas[0].nomeFantasia.toUpperCase()
-        }* \n*Whats:* https://wa.me/55${resultas[0].whats.match(/\d+/g).join("")} 
+        }* \n*Whats:* ${resultas[0].whatslink}\n${resultas[0].distancia.toFixed(1)} Km 
                 \n2️⃣ *${
                   resultas[1].nomeFantasia.toUpperCase()
-                }* \n*Whats:* https://wa.me/55${resultas[1].whats
-          .match(/\d+/g)
-          .join("")}
+                }* \n*Whats:* ${resultas[1].whatslink}\n${resultas[1].distancia.toFixed(1)} Km
                 \n3️⃣ *${
                   resultas[2].nomeFantasia.toUpperCase()
-                }* \n*Whats:* https://wa.me/55${resultas[2].whats
-          .match(/\d+/g)
-          .join("")}`;
+                }* \n*Whats:* ${resultas[2].whatslink}\n${resultas[2].distancia.toFixed(1)} Km`;
       }
       if (index === 3) {
         texto = `*${resultas.length}* resultado (s) encontrados para *${pesquisado.toUpperCase()}* em *${localidade.toUpperCase()}*.`;
         numero = "4";
-         rodape = "🔢 Digite o *numero* da pesquisa para mais detalhes 😊"
+         rodape = "\n🔢 *Mais detalhes...*"
         text = `\n1️⃣ *Nome:* ${
           resultas[0].nomeFantasia.toUpperCase()
-        } \n*Whats:* https://wa.me/55${resultas[0].whats.match(/\d+/g).join("")}
+        } \n*Whats:* ${resultas[0].whatslink}\n${resultas[0].distancia.toFixed(1)} Km
                 \n2️⃣ *Nome:* ${
                   resultas[1].nomeFantasia.toUpperCase()
-                } \n*Whats:* https://wa.me/55${resultas[1].whats
-          .match(/\d+/g)
-          .join("")}
+                } \n*Whats:* ${resultas[1].whatslink}\n${resultas[1].distancia.toFixed(1)} Km
                 \n3️⃣ *Nome:* ${
                   resultas[2].nomeFantasia.toUpperCase()
-                } \n*Whats:* https://wa.me/55${resultas[2].whats
-          .match(/\d+/g)
-          .join("")}
+                } \n*Whats:* ${resultas[2].whatslink}\n${resultas[2].distancia.toFixed(1)} Km
                 \n4️⃣ *Nome:* ${
                   resultas[3].nomeFantasia.toUpperCase()
-                } \n*Whats:* https://wa.me/55${resultas[3].whats
-          .match(/\d+/g)
-          .join("")}`;
+                } \n*Whats:* ${resultas[3].whatslink}\n${resultas[3].distancia.toFixed(1)} Km`;
       }
       if (index === 4) {
         texto = `*${resultas.length}* resultado (s) encontrados para *${pesquisado.toUpperCase()}* em *${localidade.toUpperCase()}*.`;
         numero = "4";
-      rodape = "🔢 Digite o *numero* da pesquisa para mais detalhes 😊"
-        text = `\n1️⃣ *${resultas[0].nomeFantasia.toUpperCase()}*\n*Whats:* https://wa.me/55${resultas[0].whats.match(/\d+/g).join("")} 
-                \n2️⃣ *${resultas[1].nomeFantasia.toUpperCase()}*\n*Whats:* https://wa.me/55${resultas[1].whats.match(/\d+/g).join("")} 
-                \n3️⃣ *${resultas[2].nomeFantasia.toUpperCase()}*\n*Whats:* https://wa.me/55${resultas[2].whats.match(/\d+/g).join("")}
-                \n4️⃣ *${resultas[3].nomeFantasia.toUpperCase()}*\n*Whats:* https://wa.me/55${resultas[3].whats.match(/\d+/g).join("")}
-                \n5️⃣ *Mais resultados*`;
+      rodape = "🔢 *Mais detalhes...*"
+        text = `\n1️⃣ *${resultas[0].nomeFantasia.toUpperCase()}*\n*Whats:* ${resultas[0].whatslink}\n${resultas[0].distancia.toFixed(1)} Km
+                \n2️⃣ *${resultas[1].nomeFantasia.toUpperCase()}*\n*Whats:* ${resultas[1].whatslink}\n${resultas[1].distancia.toFixed(1)} Km 
+                \n3️⃣ *${resultas[2].nomeFantasia.toUpperCase()}*\n*Whats:* ${resultas[2].whatslink}\n${resultas[2].distancia.toFixed(1)} Km
+                \n4️⃣ *${resultas[3].nomeFantasia.toUpperCase()}*\n*Whats:* ${resultas[3].whatslink}\n${resultas[3].distancia.toFixed(1)} Km
+                \n5️⃣ *Mais resultados...*`;
       }
     });
 
@@ -2714,7 +2916,7 @@ Obrigado por utilizar *102paraWhats®* 🙏`
         name: "menu",
         languageCode: "pt-BR",
         parameters: {
-          nome: `Obrigado, sua contribuição é muito importante para nós.* 🙏\n\n*Visitante`
+          nome: `Obrigado, sua contribuição é muito importante para nós.* 🙏\n\n🔢 *Visitante`
         }
       
       }
@@ -2739,7 +2941,7 @@ Obrigado por utilizar *102paraWhats®* 🙏`
         name: "menu",
         languageCode: "pt-BR",
         parameters: {
-          nome: `Obrigado, sua contribuição é muito importante para nós.* 🙏\n\n*Visitante`
+          nome: `Obrigado, sua contribuição é muito importante para nós.* 🙏\n\n🔢 *Visitante`
         }
       
       }
@@ -2759,189 +2961,156 @@ Obrigado por utilizar *102paraWhats®* 🙏`
   
     }
 
-   
+   if (queryResult.intent.displayName === "duvida") {
+
+  const client = await show(session);
     
-   if (queryResult.intent.displayName === "teste") {
-   //console.log(queryResult)
-//   //const texto = String(queryResult.parameters.teste).match(/\d+/g).join('');
+  const texto =`🤓🤚
+Como é *sua primeira vez* aqui vou te dar uma mãozinha na navegação, com algumas explicações rápidas do funcionamento.
+
+Isso são apenas *alguns exemplos* e quando você ver esses ícones deverá saber e fazer o seguinte:
+
+🔢 Escolher uma das opções fornecidas.
+
+1️⃣ Digitar *1* 
+2️⃣ Digitar *2* 
+E assim para as demais opções numéricas.
+
+🔎 Quando ver essa lupa já pode digitar o que deseja pesquisar, como por exemplo: o nome de uma empresa, sua atividade ou seu telefone. De preferência digite apenas *1 palavra* para sua busca ser mais funcional.
+
+🟢 Isso significa que sua pesquisa deu certo.
+
+🟡 Isso significa que sua pesquisa não foi encontrada, mas exibimos outros resultados.
+
+🔴  Isso significa que sua pesquisa não foi encontrada, e que não temos outros resultados para exibir.
+
+5️⃣ Mais resultados…
+Quando tiver essa opção digite *5* para ver mais resultados de sua pesquisa.
+
+🔢 Mais detalhes...
+Quando tiver essa opção digite o número correspondente ao resultado de sua pesquisa para ver mais detalhes sobre a Empresa/Serviço.
+
+🅿️ Pesquisar
+Quando tiver essa opção digite *P* ou *p* para fazer uma pesquisa.
+
+Ⓜ️ Menu
+Quando tiver essa opção digite *M* ou *m* para navegar até o MENU.
+
+🅾️ SAIR
+Quando tiver essa opção digite *0* para finalizar.
+
+Se porventura algo não saia como desejado você pode me dar *Oi* para recomeçar.
+
+Agora já sabe utilizar e está pronto para fazer suas pesquisas 😁
+`
+  
+  if (!client) {    
+    return response.json({followupEventInput: {
+        name: "menu",
+       parameters: {
+          nome: `${texto}\n🔢 *Visitante`
+          
+        }
+      
+    }
+    });}
+    const termo = `${client.termo.toUpperCase()}*`;
+    const cidadeuf = `${client.localidade}/${client.uf}`
+    return response.json({
+      followupEventInput: {
+        name: "menurapido",
+        languageCode: "pt-BR",
+        parameters: {
+          mensagem: `${texto}\n*${client.nome}*`,
+          localidade: `${client.localidade.toUpperCase()}`,
+          termo: `${termo}`,
+          cidadeuf: `${cidadeuf}`
+        }
+      }
+    });    
+
+}
+
+    
+   if (queryResult.intent.displayName === "teste1") {
+     console.log("avaliar")
+let cnpjcpf = "06941992905"
+let nome = "marxfarma"
+let nota = queryResult.parameters.texto
+let quantidade
+let media
+const usuario = await showavalia(session,cnpjcpf);
+const empresa = await showavalia1(cnpjcpf);
+console.log("resultusuario")
+console.log(usuario)
+
+let avaliar = "Avalie";  
+if (usuario) {console.log("USUARIO AVALIOU")
+ avaliar = `Sua avaliação ${usuario.nota}`;}    
+let avaliacao = "SEJA O PRIMEIRO A AVALIAR"
+if (empresa) {
+  console.log("EMPRESA COM AVALIAÇÃO")
+if (empresa.media = "1"){ avaliacao = `⭐`}
+if (empresa.media = "2"){ avaliacao = `⭐⭐`}
+if (empresa.media = "3"){ avaliacao = `⭐⭐⭐`}
+if (empresa.media = "4"){ avaliacao = `⭐⭐⭐⭐`}
+if (empresa.media = "5"){ avaliacao = `⭐⭐⭐⭐⭐`}
+             }   
+   //  console.log("result empresa")
+//console.log(Array(resultempresa.nota))
+     
+  //    await axios.post(
+  //   empresa,
+  //   {
+  //     id: idUser,
+  //     cnpjcpf: cnpjcpf,
+  //     nota: nota,
+  //     quantidade: quantidade,
+  //     media: media
+  //   },   
+  // );
  
-//  // const testoAjustado = String(queryResult.parameters.teste).normalize("NFD").replace(/[^a-zA-Zs]/g, "").toUpperCase();
-//   // console.log(queryResult.parameters.teste)
-//   //    const testoAjustado = queryResult.parameters.teste   
-//   // const data = session.split('/');
-//   // const numero = data[data.length - 1]
-//   // const idUser = String(numero).match(/\d+/g).join('');
-// // `${process.env.URL_SHEET}/id/${idUser}`,
-    
+     
+  return response.json({fulfillmentText: `Nota ${avaliacao}\n6-${avaliar}`});
+
+}
+
+if (queryResult.intent.displayName === "teste") {
+
+//   console.log(`dayjs()`)
   
-//     // axios.delete('https://sheetdb.io/api/v1/58f61be4dda40/id/61')
-//     // .then( response => {
-//     //     console.log(response.data);
-//     // });
-// //       await axios.delete(`${process.env.URL_SHEET}/id/${idUser}`)
-// //     .then( response => {
-// //         console.log(response.data);
-// //     });
-    
-     
-// //        await axios.patch(`${process.env.URL_SHEET}/id/${idUser}`,{
-// //         "data": {"nome": "joao"}
-// //     }).then( response => {
-// //         console.log(response.data);
-// //     });
-//       //console.log(queryResult);
-//      //const texto = queryResult.parameters.location
-//       console.log(queryResult.parameters.pesquisa);
- 
-     
-     
-     const telefone = queryResult.parameters.texto
-     const cell = await arrumaCelular2(telefone);
-     console.log(queryResult.parameters.texto)
-     
-     const celular = await arrumaCelular3(cell.celular);
-    const numerosms = celular.celular
-    
-   await sms2 (numerosms)
-  const texto =  (queryResult.parameters.texto) .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"")
-     const client = await show(session);
-     
-//      const data = [{}]
-     
-     
-     
-     
-// function calcGeo1(lat1, lng1, lat2, lng2) {
-//     Number.prototype.toRad = function () {
-//         return this * Math.PI / 180;
-//     }
+// const agora = dayjs().format()
+//   console.log(agora)
 
-//     let latitude1 = Number(lat1);
-//     let longitude1 = Number(lng1);
-//     let latitude2 = Number(lat2);
-//     let longitude2 = Number(lng2);
+//   const depois = dayjs(agora).add(1, "m").format()
+//  // console.log(depois)
 
-//     let R = 6371; // km 
-//     //has a problem with the .toRad() method below.
-//     let x1 = latitude2 - latitude1;
-//     let dLat = x1.toRad();
-//     let x2 = longitude2 - longitude1;
-//     let dLon = x2.toRad();
-//     let a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-//         Math.cos(lat1.toRad()) * Math.cos(lat2.toRad()) *
-//         Math.sin(dLon / 2) * Math.sin(dLon / 2);
-//     let c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-//     let d = R * c;
+//     console.log(dayjs().isAfter(dayjs.unix("2021-10-04T01:30:05+00:00")))
+                
+//    console.log( dayjs(agora).isAfter("2021-10-04T01:35:07+00:00"))
 
-//     return d;
-// }
-
-// async function geolocation1(numero1, rua1, cidade1, uf1) {
-
-//     //https://maps.googleapis.com/maps/api/geocode/json?address=340+Avenida+Pirapo,+Apucarana,+PR&key=AIzaSyBEvaFSyLB4d_HD2ylCYX3ZqSISAg8cKwQ
-
-// const ruas = rua1.normalize("NFD").replace(/[^a-zA-Zs]/g, "")
-// const rua =  ruas.replace(" ", "+");
-// const cidades = cidade1.normalize("NFD").replace(/[^a-zA-Zs]/g, "")
-// const cidade =  cidades.replace(" ", "+");
-//     console.log("teste geolocation")
-//     console.log(rua)
-//     console.log(cidade)
-//     console.log(numero1)
-//     console.log(uf1)
-
-//     const result = await axios.get(`${process.env.URL_GEO}${numero1}+${rua},+${cidade},+${uf1}&key=${process.env.KEY_GEO}`);
-//     const {
-//         lat,
-//         lng
-//     } = result.data.results[0].geometry.location;
-//  console.log("retorno geolocation")
-//  // console.log(result)
-//     //const pontoA = 0.16744805938694565
-//     //const pontoB = 1.4311955821362077
-
-//     return {
-//         lat,
-//         lng
-//     };
-// }
-
-
-
-//     const data =  await geolocation(client.numero, client.rua, client.localidade, client.uf);
-  
-     
-// console.log("2 retorno geolocation")
-// console.log(data.lat)
-// console.log(data.lng)
-
-//   const mockResults = [{
-//             "name": "farmácia Videira",
-//             "lat": '-23.5525957',
-//             "lng": '-51.4588932'
-//         }, {
-//             "name": "farmácia Cristo Profeta",
-//             "lat": -23.5528456,
-//             "lng": -51.4729313
-//         },
-//         {
-//             "name": "farmácia Vila nova",
-//             "lat": '-23.5579259',
-//             "lng": '-51.4415918'
-//         }
-//     ]
   
   
-//   console.log("arrei normal")
-//   console.log(mockResults[0].lat)
-//   console.log(mockResults[0].lng)
-//    console.log("arrei normal com aspas")
-//   console.log(mockResults[1].lat)
-//   console.log(mockResults[1].lng)
-//      console.log("arrei")
-//   console.log(mockResults)
-//    queryResult.parameters.atividae = "farmácia"
-//      const localidade = client.localidade
-// const resultas = await pesquisa(queryResult.parameters, localidade, session);
-// console.log("arrei resultas")
-//   console.log(resultas[0].lat)
-//   console.log(resultas[0].lng) 
-//      //.replace(/['"]+/g, '')
-//      const distancias = resultas.map((result) => {
-//         return {
-//             ...result,
-//             distancia: calcGeo(data.lat, data.lng, Number(result.lat), Number(result.lng))
-//         }
-//     });
-//   console.log("arrey distancias")
-//   console.log(distancias)
-//     console.log("arrey distancias ordenadas")
-//   console.log(distancias.sort(function (a, b) {
-//         return (a.distancia > b.distancia) ? 1 : ((b.distancia > a.distancia) ? -1 : 0);
-//     }))
-
-
-
-
-
-  return response.json({fulfillmentText: `ok`});
   
-
+  
+//   return response.json({fulfillmentText: ` ok`});
+  
    
-   }
-    
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
+   
+    return response.json({
+      followupEventInput: {
+        name: "duvida",
+        languageCode: "pt-BR",
+      
+      }
+    });    
+
+}
+
+
+
+
+
 });
 
 app.listen(process.env.PORT || 3000);
