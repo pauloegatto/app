@@ -1,5 +1,7 @@
 const express = require("express");
 const app = express();
+const dotenv = require('dotenv/config')
+dotenv.config()
 const dayjs = require('dayjs')
 const utc = require('dayjs/plugin/utc')
 const timezone = require('dayjs/plugin/timezone')
